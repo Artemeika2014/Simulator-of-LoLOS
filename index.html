@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>LoLOS1</title>
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #1a1a3e, #2d1b69);
+            --glass: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.15);
+            --text: #fff;
+            --accent: #7b5ea7;
+        }
+        .theme-light {
+            --bg: linear-gradient(135deg, #e8e0ff, #c8b8f0);
+            --glass: rgba(0,0,0,0.06);
+            --glass-border: rgba(0,0,0,0.1);
+            --text: #1a1a3e;
+            --accent: #5a4a8a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg); color: var(--text);
+            height: 100vh; overflow: hidden; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow-y: auto; padding: 20px; }
+        .active { display: flex; }
+        .glass { background: var(--glass); backdrop-filter: blur(20px); border-radius: 28px; padding: 28px 22px; border: 1px solid var(--glass-border); width: 100%; max-width: 380px; box-shadow: 0 20px 35px rgba(0,0,0,0.3); }
+        input, select { background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: var(--text); padding: 14px; border-radius: 14px; width: 100%; margin: 8px 0; font-size: 1rem; }
+        button { background: var(--accent); color: white; border: none; padding: 14px 20px; border-radius: 14px; font-size: 1rem; margin: 6px 0; cursor: pointer; width: 100%; font-weight: 600; }
+        button.secondary { background: rgba(255,255,255,0.15); }
+        button:disabled { opacity: 0.4; cursor: default; }
+        .app-icon {
+            width: 78px; height: 78px; border-radius: 22px;
+            background: var(--glass); display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem; flex-direction: column; color: white; position: relative;
+            transition: 0.2s; backdrop-filter: blur(10px);
+        }
+        .app-icon span { font-size: 0.6rem; margin-top: 4px; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .app-icon .update-dot {
+            position: absolute; top: -4px; right: -4px; width: 14px; height: 14px;
+            background: #ff3b30; border-radius: 50%; animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
+        .desktop { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; width: 100%; height: 100%; align-content: center; padding: 20px; }
+        .status-bar { position: absolute; top: 0; width: 100%; padding: 14px 20px; display: flex; justify-content: space-between; font-size: 0.9rem; z-index: 10; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 20px; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; z-index: 200; pointer-events: none; }
+        .toast.show { opacity: 1; }
+        .board-cell { width: 75px; height: 75px; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border-radius: 14px; cursor: pointer; }
+        .calc-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: var(--text); padding: 14px; border-radius: 14px; font-size: 1.2rem; cursor: pointer; }
+        .progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.15); border-radius: 10px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { height: 100%; width: 0%; background: white; border-radius: 10px; transition: width 0.5s linear; }
+        .update-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .update-logo { font-size: 4rem; font-weight: bold; color: white; margin-bottom: 15px; }
+        .update-text { color: white; font-size: 1rem; margin-bottom: 10px; }
+        .lock-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 500; }
+        .lock-time { font-size: 5rem; font-weight: bold; }
+        .lock-date { font-size: 1.5rem; opacity: 0.8; margin-top: 8px; }
+        .quick-menu { position: fixed; top: 0; right: 0; width: 260px; height: 100%; background: rgba(20,20,40,0.95); backdrop-filter: blur(20px); z-index: 500; display: flex; flex-direction: column; padding: 60px 20px 20px; gap: 12px; transform: translateX(100%); transition: transform 0.3s; }
+        .quick-menu.open { transform: translateX(0); }
+    </style>
+</head>
+<body>
+
+    <!-- АВТОРИЗАЦИЯ -->
+    <div id="authScreen" class="screen active">
+        <div class="glass" style="text-align: center;">
+            <h2>LoLOS1</h2>
+            <input type="text" id="codeInput" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" inputmode="text">
+            <button onclick="continueWithCode()" id="authContinueBtn">Продолжить</button>
+            <p style="margin:12px 0;" id="authOr">— или —</p>
+            <button class="secondary" onclick="registerDevice()" id="authRegisterBtn">Зарегистрировать устройство</button>
+            <p id="errorMsg" style="color:#ff4d4d;margin-top:8px;"></p>
+        </div>
+    </div>
+
+    <!-- ЯЗЫК -->
+    <div id="languageScreen" class="screen"><div class="glass" style="text-align:center;"><h2 id="langTitle">Выберите язык / Select language</h2><button onclick="selectLanguage('ru')">RU</button><button onclick="selectLanguage('en')">EN</button></div></div>
+
+    <!-- ПРАВИЛА -->
+    <div id="rulesScreen" class="screen"><div class="glass" style="text-align:center;"><h2 id="rulesTitle">Правила LoLOS1</h2><div id="rulesText" style="text-align:left;margin:15px 0;">1. Не нарушать...</div><label><input type="checkbox" id="acceptCheck" onchange="document.getElementById('acceptBtn').disabled=!this.checked"> <span id="acceptLabel">Я принимаю условия</span></label><button id="acceptBtn" disabled onclick="acceptRules()">Далее</button></div></div>
+
+    <!-- ПРИВЕТСТВИЕ -->
+    <div id="greetingScreen" class="screen"><h1 id="greetingText" style="font-size:3rem;">Привет</h1></div>
+
+    <!-- РАБОЧИЙ СТОЛ -->
+    <div id="desktopScreen" class="screen">
+        <div class="status-bar"><span id="clockDisplay"></span><span>LoLOS1</span></div>
+        <div class="desktop" id="desktopContainer"></div>
+    </div>
+
+    <!-- ГАЛЕРЕЯ -->
+    <div id="galleryScreen" class="screen"><button onclick="goToDesktop()" id="galleryBackBtn">← Назад</button><div id="galleryGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:50px 10px;"></div><input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="uploadPhoto(event)"><button onclick="document.getElementById('photoInput').click()" style="position:absolute;bottom:25px;right:25px;width:50px;height:50px;border-radius:50%;padding:0;">+</button></div>
+    <div id="photoViewScreen" class="screen" style="background:#000;"><button onclick="showScreen('galleryScreen');loadGallery();" id="photoBackBtn">← Назад</button><img id="photoViewImg" style="max-width:90%;max-height:70%;border-radius:12px;"><p id="photoViewDate" style="margin-top:10px;"></p><button onclick="deleteCurrentPhoto()" style="background:#ff3b30;margin-top:10px;" id="photoDeleteBtn">Удалить</button></div>
+
+    <!-- ЛОЛ ЭПС -->
+    <div id="lolAppsScreen" class="screen"><button onclick="goToDesktop()" id="lolAppsBackBtn">← Назад</button><div class="desktop"><div class="app-icon" onclick="downloadApp('google')">🔍<span>Google</span></div><div class="app-icon" onclick="downloadApp('tictactoe')">❌⭕<span id="lolGameLabel">Игра</span></div><div class="app-icon" onclick="downloadApp('calculator')">🔢<span id="lolCalcLabel">Калькулятор</span></div></div></div>
+
+    <!-- СКАЧИВАНИЕ -->
+    <div id="downloadScreen" class="screen"><button onclick="goToDesktop()" id="downloadBackBtn">← Назад</button><div class="glass" style="text-align:center;"><h2 id="downloadTitle">Скачивание</h2><p id="downloadDesc">Загрузите .lolos</p><button onclick="document.getElementById('lolosFileInput').click()" id="downloadSelectBtn">Выбрать файл</button><input type="file" id="lolosFileInput" accept=".lolos,application/json" style="display:none;" onchange="handleLolosFile(event)"><div id="appPreview" style="display:none;margin-top:15px;"><h3 id="appPreviewName"></h3><p id="appPreviewEmoji" style="font-size:3rem;"></p><p id="appPreviewSafety"></p><button onclick="confirmAddApp()" id="downloadAddBtn">Внести на экран</button></div></div></div>
+
+    <!-- НАСТРОЙКИ -->
+    <div id="settingsScreen" class="screen"><button onclick="goToDesktop()" id="settingsBackBtn">← Назад</button><div class="glass"><h2 id="settingsTitle">Настройки</h2><label id="settingsFontLabel">Шрифт<select id="fontSelect" onchange="settings.font=this.value;applyFont();"></select></label><label id="settingsThemeLabel">Тема<select id="themeSelect" onchange="settings.theme=this.value;applyTheme();"><option value="dark" id="themeDarkOpt">Тёмная</option><option value="light" id="themeLightOpt">Светлая</option></select></label><label id="settingsTimeLabel">Время<select id="timeModeSelect" onchange="settings.timeMode=this.value;document.getElementById('manualTimeBlock').style.display=this.value==='manual'?'block':'none';"><option value="auto" id="timeAutoOpt">Авто</option><option value="manual" id="timeManualOpt">Вручную</option></select></label><div id="manualTimeBlock" style="display:none;"><input type="datetime-local" id="manualDateTime" onchange="settings.manualTime=this.value;"><label id="settingsFormatLabel">Формат<select id="hourFormat" onchange="settings.hourFormat=this.value;"><option value="24">24h</option><option value="12">12h</option></select></label></div><button onclick="showScreen('updateScreen')" id="settingsUpdateBtn">🔄 Обновление ПО</button><button onclick="showAbout()" id="settingsAboutBtn">ℹ️ Об устройстве</button></div></div>
+
+    <!-- ОБ УСТРОЙСТВЕ -->
+    <div id="aboutScreen" class="screen"><button onclick="goToDesktop()" id="aboutBackBtn">← Назад</button><div class="glass" style="text-align:center;"><h2 id="aboutTitle">Об устройстве</h2><p id="aboutOS">ОС: <strong>LoLOS1</strong></p><p id="aboutVersionLine">Версия: <strong id="aboutVersion">1.0</strong></p><p id="aboutCodeLine">Код: <strong id="aboutCode"></strong></p></div></div>
+
+    <!-- ОБНОВЛЕНИЕ -->
+    <div id="updateScreen" class="screen"><button onclick="goToDesktop()" id="updateBackBtn">← Назад</button><div class="glass" style="text-align:center;"><h2 id="updateTitle">Обновление ПО</h2><div id="updateAvailable"><p style="font-size:1.3rem;font-weight:bold;">LoLOS 1.1</p><p style="text-align:left;margin:10px 0;" id="updateFeatures">• Новые шрифты<br>• Панель быстрого доступа<br>• Экран блокировки</p><button onclick="startUpdate()" id="updateStartBtn">⚡ Обновить</button></div><p id="noUpdateMsg" style="opacity:0.7;">Пока никаких обновлений нет</p></div></div>
+
+    <!-- КРЕСТИКИ-НОЛИКИ -->
+    <div id="ticTacToeScreen" class="screen"><button onclick="goToDesktop()" id="tictactoeBackBtn">← Назад</button><div id="tictactoeMenu" class="glass" style="text-align:center;"><h2 id="tictactoeModeTitle">Режим</h2><button onclick="startBotGame()" id="tictactoeBotBtn">Бот</button><button onclick="startHumanGame()" id="tictactoeHumanBtn">Человек</button><div id="botLevels" style="display:none;margin-top:8px;"><button onclick="setBotLevel('easy')" id="botEasyBtn">Лёгкий</button><button onclick="setBotLevel('medium')" id="botMediumBtn">Средний</button><button onclick="setBotLevel('hard')" id="botHardBtn">Сложный</button></div></div><div id="tictactoeGame" style="display:none;text-align:center;"><div id="board" style="display:grid;grid-template-columns:repeat(3,75px);gap:5px;justify-content:center;"></div><p id="aiMessage" style="margin-top:8px;"></p><div id="tictactoeButtons"></div></div></div>
+
+    <!-- КАЛЬКУЛЯТОР -->
+    <div id="calculatorScreen" class="screen"><button onclick="goToDesktop()" id="calcBackBtn">← Назад</button><div class="glass" style="width:300px;"><input type="text" id="calcDisplay" readonly style="text-align:right;font-size:1.5rem;background:rgba(0,0,0,0.3);"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;"><button class="calc-btn" onclick="calcInput('7')">7</button><button class="calc-btn" onclick="calcInput('8')">8</button><button class="calc-btn" onclick="calcInput('9')">9</button><button class="calc-btn" onclick="calcInput('/')">÷</button><button class="calc-btn" onclick="calcInput('4')">4</button><button class="calc-btn" onclick="calcInput('5')">5</button><button class="calc-btn" onclick="calcInput('6')">6</button><button class="calc-btn" onclick="calcInput('*')">×</button><button class="calc-btn" onclick="calcInput('1')">1</button><button class="calc-btn" onclick="calcInput('2')">2</button><button class="calc-btn" onclick="calcInput('3')">3</button><button class="calc-btn" onclick="calcInput('-')">−</button><button class="calc-btn" onclick="calcInput('0')">0</button><button class="calc-btn" onclick="calcInput('.')">.</button><button class="calc-btn" onclick="calcCalculate()">=</button><button class="calc-btn" onclick="calcInput('+')">+</button><button class="calc-btn" onclick="calcClear()" style="background:#ff3b30;">C</button></div></div></div>
+
+    <!-- КАЛЕНДАРЬ -->
+    <div id="calendarScreen" class="screen"><button onclick="goToDesktop()" id="calBackBtn">← Назад</button><div class="glass" style="width:320px;text-align:center;"><h2 id="calMonth"></h2><div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div><button onclick="changeMonth(-1)">←</button><button onclick="changeMonth(1)">→</button></div></div>
+
+    <!-- GOOGLE -->
+    <div id="googleScreen" class="screen" style="padding:0;"><iframe src="https://www.google.com/webhp?igu=1" style="width:100%;height:100%;border:none;"></iframe><button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);">←</button></div>
+
+    <!-- ОВЕРЛЕЙ ОБНОВЛЕНИЯ -->
+    <div id="updateOverlay" class="update-overlay" style="display:none;">
+        <div class="update-logo">LOL</div>
+        <div class="update-text" id="updatePhaseText">Скачивание...</div>
+        <div class="progress-bar" style="width:220px;"><div id="updateProgressFill" class="progress-fill"></div></div>
+        <p style="color:rgba(255,255,255,0.6);font-size:0.8rem;" id="updateHint"></p>
+    </div>
+
+    <!-- ЭКРАН БЛОКИРОВКИ (1.1) -->
+    <div id="lockScreen" class="lock-screen" style="display:none;" onclick="this.style.display='none'">
+        <div class="lock-time" id="lockTime"></div>
+        <div class="lock-date" id="lockDate"></div>
+        <p style="margin-top:30px;opacity:0.5;" id="lockHint">Нажмите чтобы вернуться</p>
+    </div>
+
+    <!-- БЫСТРОЕ МЕНЮ (1.1) -->
+    <div id="quickMenu" class="quick-menu">
+        <h3 id="quickMenuTitle">Быстрый доступ</h3>
+        <button onclick="toggleThemeQuick()" id="quickThemeBtn">🌓 Сменить тему</button>
+        <button onclick="showScreen('settingsScreen');closeQuickMenu();" id="quickSettingsBtn">⚙️ Настройки</button>
+        <button onclick="closeQuickMenu()" id="quickCloseBtn">✕ Закрыть</button>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <script>
+        firebase.initializeApp({ apiKey:"AIzaSyD9wOAfJ_hVfs9Xt0REXhc4G010LRqtv3s", authDomain:"lolos-51c9c.firebaseapp.com", projectId:"lolos-51c9c", storageBucket:"lolos-51c9c.firebasestorage.app", messagingSenderId:"143157807464", appId:"1:143157807464:web:1a1e257800cbc341656edd" });
+        var db=firebase.firestore(), currentDeviceCode=null, currentLanguage='ru', systemVersion='1.0';
+        var settings={theme:'dark',font:'Segoe UI',timeMode:'auto',hourFormat:'24',manualTime:null};
+        var tictactoe={mode:null,level:null,board:Array(9).fill(''),currentPlayer:'X',gameOver:false}, pendingAppData=null, calYear,calMonth,currentPhotoIndex=-1,currentGallery=[],calcExpression='';
+        var updateInterval=null, updatePhaseInterval=null;
+
+        // Локализация
+        var loc={
+            ru:{
+                continue:'Продолжить',or:'— или —',register:'Зарегистрировать устройство',errorFormat:'Неверный формат',errorNotFound:'Код не найден',
+                langTitle:'Выберите язык / Select language',rulesTitle:'Правила LoLOS1',rulesText:'1. Не нарушать работу сети.<br>2. Уважать других пользователей.<br>3. Не пытаться обойти защиту.',
+                acceptLabel:'Я принимаю условия',nextBtn:'Далее',greeting:'Привет',
+                gallery:'Галерея',lolApps:'Лол Эпс',calendar:'Календарь',download:'Скачивание',settings:'Настройки',
+                game:'Игра',calculator:'Калькулятор',
+                back:'← Назад',delete:'Удалить',
+                downloadTitle:'Скачивание',downloadDesc:'Загрузите .lolos',downloadSelect:'Выбрать файл',downloadAdd:'Внести на экран',
+                settingsTitle:'Настройки',settingsFont:'Шрифт',settingsTheme:'Тема',themeDark:'Тёмная',themeLight:'Светлая',
+                settingsTime:'Время',timeAuto:'Авто',timeManual:'Вручную',settingsFormat:'Формат',
+                settingsUpdate:'🔄 Обновление ПО',settingsAbout:'ℹ️ Об устройстве',
+                aboutTitle:'Об устройстве',aboutOS:'ОС: <strong>LoLOS1</strong>',aboutVersionLine:'Версия: <strong>',aboutCodeLine:'Код: <strong>',
+                updateTitle:'Обновление ПО',updateFeatures:'• Новые шрифты<br>• Панель быстрого доступа<br>• Экран блокировки',updateStart:'⚡ Обновить',
+                noUpdate:'Пока никаких обновлений нет',
+                tictactoeMode:'Режим',tictactoeBot:'Бот',tictactoeHuman:'Человек',botEasy:'Лёгкий',botMedium:'Средний',botHard:'Сложный',
+                win:'победил!',draw:'Ничья',menu:'В меню',
+                quickMenu:'Быстрый доступ',quickTheme:'🌓 Сменить тему',quickSettings:'⚙️ Настройки',quickClose:'✕ Закрыть',
+                lockHint:'Нажмите чтобы вернуться',
+                updated:'Ваш телефон был обновлён до версии 1.1!',photoAdded:'Фото добавлено',photoDeleted:'Удалено',appAdded:'Добавлено!'
+            },
+            en:{
+                continue:'Continue',or:'— or —',register:'Register device',errorFormat:'Invalid format',errorNotFound:'Code not found',
+                langTitle:'Select language / Выберите язык',rulesTitle:'LoLOS1 Terms',rulesText:'1. Do not harm the network.<br>2. Respect other users.<br>3. Do not bypass security.',
+                acceptLabel:'I accept the terms',nextBtn:'Next',greeting:'Hello',
+                gallery:'Gallery',lolApps:'LoL Apps',calendar:'Calendar',download:'Downloads',settings:'Settings',
+                game:'Game',calculator:'Calculator',
+                back:'← Back',delete:'Delete',
+                downloadTitle:'Downloads',downloadDesc:'Upload .lolos',downloadSelect:'Select file',downloadAdd:'Add to home screen',
+                settingsTitle:'Settings',settingsFont:'Font',settingsTheme:'Theme',themeDark:'Dark',themeLight:'Light',
+                settingsTime:'Time',timeAuto:'Auto',timeManual:'Manual',settingsFormat:'Format',
+                settingsUpdate:'🔄 Software Update',settingsAbout:'ℹ️ About',
+                aboutTitle:'About',aboutOS:'OS: <strong>LoLOS1</strong>',aboutVersionLine:'Version: <strong>',aboutCodeLine:'Code: <strong>',
+                updateTitle:'Software Update',updateFeatures:'• New fonts<br>• Quick panel<br>• Lock screen',updateStart:'⚡ Update',
+                noUpdate:'No updates available',
+                tictactoeMode:'Mode',tictactoeBot:'Bot',tictactoeHuman:'Human',botEasy:'Easy',botMedium:'Medium',botHard:'Hard',
+                win:'wins!',draw:'Draw',menu:'Menu',
+                quickMenu:'Quick panel',quickTheme:'🌓 Toggle theme',quickSettings:'⚙️ Settings',quickClose:'✕ Close',
+                lockHint:'Tap to return',
+                updated:'Your phone has been updated to version 1.1!',photoAdded:'Photo added',photoDeleted:'Deleted',appAdded:'Added!'
+            }
+        };
+
+        function t(key){return (loc[currentLanguage]&&loc[currentLanguage][key])||loc['ru'][key]||key;}
+
+        function applyLanguage(){
+            document.getElementById('authContinueBtn').textContent=t('continue');
+            document.getElementById('authOr').textContent=t('or');
+            document.getElementById('authRegisterBtn').textContent=t('register');
+            document.getElementById('langTitle').textContent=t('langTitle');
+            document.getElementById('rulesTitle').textContent=t('rulesTitle');
+            document.getElementById('rulesText').innerHTML=t('rulesText');
+            document.getElementById('acceptLabel').textContent=t('acceptLabel');
+            document.getElementById('acceptBtn').textContent=t('nextBtn');
+            document.getElementById('greetingText').textContent=t('greeting');
+            document.getElementById('galleryBackBtn').textContent=t('back');
+            document.getElementById('photoBackBtn').textContent=t('back');
+            document.getElementById('photoDeleteBtn').textContent=t('delete');
+            document.getElementById('lolAppsBackBtn').textContent=t('back');
+            document.getElementById('lolGameLabel').textContent=t('game');
+            document.getElementById('lolCalcLabel').textContent=t('calculator');
+            document.getElementById('downloadBackBtn').textContent=t('back');
+            document.getElementById('downloadTitle').textContent=t('downloadTitle');
+            document.getElementById('downloadDesc').textContent=t('downloadDesc');
+            document.getElementById('downloadSelectBtn').textContent=t('downloadSelect');
+            document.getElementById('downloadAddBtn').textContent=t('downloadAdd');
+            document.getElementById('settingsBackBtn').textContent=t('back');
+            document.getElementById('settingsTitle').textContent=t('settingsTitle');
+            document.getElementById('settingsFontLabel').innerHTML=t('settingsFont')+'<select id="fontSelect" onchange="settings.font=this.value;applyFont();"></select>';
+            document.getElementById('settingsThemeLabel').innerHTML=t('settingsTheme')+'<select id="themeSelect" onchange="settings.theme=this.value;applyTheme();"><option value="dark">'+t('themeDark')+'</option><option value="light">'+t('themeLight')+'</option></select>';
+            document.getElementById('settingsTimeLabel').innerHTML=t('settingsTime')+'<select id="timeModeSelect" onchange="settings.timeMode=this.value;document.getElementById(\'manualTimeBlock\').style.display=this.value===\'manual\'?\'block\':\'none\';"><option value="auto">'+t('timeAuto')+'</option><option value="manual">'+t('timeManual')+'</option></select>';
+            document.getElementById('settingsFormatLabel').innerHTML=t('settingsFormat')+'<select id="hourFormat" onchange="settings.hourFormat=this.value;"><option value="24">24h</option><option value="12">12h</option></select>';
+            document.getElementById('settingsUpdateBtn').textContent=t('settingsUpdate');
+            document.getElementById('settingsAboutBtn').textContent=t('settingsAbout');
+            document.getElementById('aboutBackBtn').textContent=t('back');
+            document.getElementById('aboutTitle').textContent=t('aboutTitle');
+            document.getElementById('aboutOS').innerHTML=t('aboutOS');
+            document.getElementById('updateBackBtn').textContent=t('back');
+            document.getElementById('updateTitle').textContent=t('updateTitle');
+            document.getElementById('updateFeatures').innerHTML=t('updateFeatures');
+            document.getElementById('updateStartBtn').textContent=t('updateStart');
+            document.getElementById('noUpdateMsg').textContent=t('noUpdate');
+            document.getElementById('tictactoeBackBtn').textContent=t('back');
+            document.getElementById('tictactoeModeTitle').textContent=t('tictactoeMode');
+            document.getElementById('tictactoeBotBtn').textContent=t('tictactoeBot');
+            document.getElementById('tictactoeHumanBtn').textContent=t('tictactoeHuman');
+            document.getElementById('botEasyBtn').textContent=t('botEasy');
+            document.getElementById('botMediumBtn').textContent=t('botMedium');
+            document.getElementById('botHardBtn').textContent=t('botHard');
+            document.getElementById('calcBackBtn').textContent=t('back');
+            document.getElementById('calBackBtn').textContent=t('back');
+            document.getElementById('quickMenuTitle').textContent=t('quickMenu');
+            document.getElementById('quickThemeBtn').textContent=t('quickTheme');
+            document.getElementById('quickSettingsBtn').textContent=t('quickSettings');
+            document.getElementById('quickCloseBtn').textContent=t('quickClose');
+            document.getElementById('lockHint').textContent=t('lockHint');
+            renderDesktop();
+            populateFontSelect();
+        }
+
+        function populateFontSelect(){
+            var fonts=(systemVersion==='1.1')?['Segoe UI','Arial','Courier New','Verdana','Georgia','Impact']:['Segoe UI','Arial','Courier New'];
+            var sel=document.getElementById('fontSelect');
+            if(!sel)return;
+            sel.innerHTML='';
+            fonts.forEach(function(f){
+                var opt=document.createElement('option');opt.value=f;opt.textContent=f;if(f===settings.font)opt.selected=true;sel.appendChild(opt);
+            });
+        }
+
+        function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function goToDesktop(){ showScreen('desktopScreen'); }
+        function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); }
+
+        // Код
+        document.getElementById('codeInput').addEventListener('input',function(e){var v=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length>16)v=v.slice(0,16);var f='';for(var i=0;i<v.length;i++){if(i===4||i===8||i===12)f+='-';f+=v[i];}this.value=f;});
+        function generateCode(){var c='',ch='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';for(var i=0;i<4;i++){for(var j=0;j<4;j++)c+=ch[Math.floor(Math.random()*ch.length)];if(i<3)c+='-';}return c;}
+        function continueWithCode(){var code=document.getElementById('codeInput').value.trim().toUpperCase();if(!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)){document.getElementById('errorMsg').textContent=t('errorFormat');return;}db.collection('users').doc(code).get().then(d=>{if(!d.exists){document.getElementById('errorMsg').textContent=t('errorNotFound');return;}currentDeviceCode=code;var data=d.data();if(data.language){currentLanguage=data.language;if(data.settings)settings=data.settings;systemVersion=data.systemVersion||'1.0';applyLanguage();startSession();}else{showScreen('languageScreen');}});}
+
+        function registerDevice(){
+            var code=generateCode();
+            db.collection('users').doc(code).set({
+                gallery:[],tictactoe:{board:Array(9).fill(''),currentPlayer:'X'},
+                language:null,acceptedTerms:false,settings:settings,
+                customApps:[],systemVersion:'1.0'
+            }).then(()=>{
+                currentDeviceCode=code;systemVersion='1.0';
+                document.getElementById('authScreen').innerHTML='<div class="glass" style="text-align:center;"><h2>Ваш код:</h2><h1>'+code+'</h1><p>Запомните код</p><button id="continueAfterReg">'+t('continue')+'</button></div>';
+                document.getElementById('continueAfterReg').onclick=()=>showScreen('languageScreen');
+            });
+        }
+
+        function selectLanguage(l){currentLanguage=l;applyLanguage();showScreen('rulesScreen');}
+        function acceptRules(){if(!document.getElementById('acceptCheck').checked)return;db.collection('users').doc(currentDeviceCode).update({language:currentLanguage,acceptedTerms:true,settings:settings}).then(()=>{document.getElementById('greetingText').textContent=t('greeting');showScreen('greetingScreen');setTimeout(startSession,1500);});}
+
+        function startSession(){
+            applyTheme();applyFont();applyLanguage();renderDesktop();goToDesktop();updateClock();setInterval(updateClock,1000);
+            if(systemVersion==='1.1'){setupGestures();}
+        }
+
+        function setupGestures(){
+            var desktop=document.getElementById('desktopScreen');
+            var startX=0,startY=0;
+            desktop.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;startY=e.touches[0].clientY;});
+            desktop.addEventListener('touchend',function(e){
+                var dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;
+                if(Math.abs(dy)>50&&Math.abs(dx)<Math.abs(dy)){
+                    if(startX<window.innerWidth/2&&dy>0){showLockScreen();}
+                    else if(startX>=window.innerWidth/2&&dy>0){openQuickMenu();}
+                }
+            });
+            desktop.addEventListener('mousedown',function(e){startX=e.clientX;startY=e.clientY;});
+            desktop.addEventListener('mouseup',function(e){
+                var dx=e.clientX-startX,dy=e.clientY-startY;
+                if(Math.abs(dy)>50&&Math.abs(dx)<Math.abs(dy)){
+                    if(startX<window.innerWidth/2&&dy>0){showLockScreen();}
+                    else if(startX>=window.innerWidth/2&&dy>0){openQuickMenu();}
+                }
+            });
+        }
+
+        function showLockScreen(){
+            var now=new Date();
+            document.getElementById('lockTime').textContent=now.toLocaleTimeString(currentLanguage==='ru'?'ru-RU':'en-US',{hour:'2-digit',minute:'2-digit'});
+            document.getElementById('lockDate').textContent=now.toLocaleDateString(currentLanguage==='ru'?'ru-RU':'en-US',{weekday:'long',day:'numeric',month:'long'});
+            document.getElementById('lockScreen').style.display='flex';
+        }
+
+        function openQuickMenu(){document.getElementById('quickMenu').classList.add('open');}
+        function closeQuickMenu(){document.getElementById('quickMenu').classList.remove('open');}
+        function toggleThemeQuick(){settings.theme=settings.theme==='dark'?'light':'dark';applyTheme();closeQuickMenu();}
+
+        function updateClock(){var now=settings.timeMode==='manual'&&settings.manualTime?new Date(settings.manualTime):new Date();var h=now.getHours(),m=now.getMinutes().toString().padStart(2,'0');var disp=settings.hourFormat==='12'?((h%12||12)+':'+m+(h>=12?' PM':' AM')):(h.toString().padStart(2,'0')+':'+m);document.getElementById('clockDisplay').textContent=disp;}
+        function applyTheme(){document.body.classList.toggle('theme-light',settings.theme==='light');}
+        function applyFont(){document.body.style.fontFamily=settings.font;}
+
+        function renderDesktop(){
+            var apps=[{type:'gallery',emoji:'🖼️',label:t('gallery')},{type:'lolapps',emoji:'🧩',label:t('lolApps')},{type:'calendar',emoji:'📅',label:t('calendar')},{type:'download',emoji:'📥',label:t('download')},{type:'settings',emoji:'⚙️',label:t('settings')}];
+            db.collection('users').doc(currentDeviceCode).get().then(d=>{
+                var custom=d.data().customApps||[],h='';
+                apps.forEach(a=>{
+                    var dot='';
+                    if(a.type==='settings'&&systemVersion==='1.0')dot='<div class="update-dot"></div>';
+                    h+='<div class="app-icon" data-app="'+a.type+'">'+dot+a.emoji+'<span>'+a.label+'</span></div>';
+                });
+                custom.forEach(c=>h+='<div class="app-icon" data-custom="'+c.id+'">'+c.emoji+'<span>'+c.name+'</span></div>');
+                document.getElementById('desktopContainer').innerHTML=h;
+                document.getElementById('desktopContainer').onclick=function(e){
+                    var icon=e.target.closest('.app-icon');if(!icon)return;
+                    var app=icon.getAttribute('data-app'),cid=icon.getAttribute('data-custom');
+                    if(app==='gallery'){showScreen('galleryScreen');loadGallery();}
+                    else if(app==='lolapps')showScreen('lolAppsScreen');
+                    else if(app==='calendar')openCalendar();
+                    else if(app==='download'){showScreen('downloadScreen');resetDownload();}
+                    else if(app==='settings'){showScreen('settingsScreen');populateFontSelect();document.getElementById('themeSelect').value=settings.theme;document.getElementById('timeModeSelect').value=settings.timeMode;document.getElementById('hourFormat').value=settings.hourFormat;document.getElementById('manualTimeBlock').style.display=settings.timeMode==='manual'?'block':'none';
+                        if(systemVersion==='1.1'){document.getElementById('updateAvailable').style.display='none';document.getElementById('noUpdateMsg').textContent=t('noUpdate');}else{document.getElementById('updateAvailable').style.display='block';document.getElementById('noUpdateMsg').textContent='';}
+                    }else if(cid)openCustomApp(cid);
+                };
+                document.querySelectorAll('[data-custom]').forEach(icon=>{icon.addEventListener('dblclick',function(){deleteCustomApp(this.getAttribute('data-custom'));});});
+            });
+        }
+
+        function deleteCustomApp(id){db.collection('users').doc(currentDeviceCode).get().then(d=>{var apps=d.data().customApps||[];return db.collection('users').doc(currentDeviceCode).update({customApps:apps.filter(a=>a.id!==id)});}).then(()=>{showToast(t('photoDeleted'));renderDesktop();});}
+        function openCustomApp(id){db.collection('users').doc(currentDeviceCode).get().then(d=>{var a=(d.data().customApps||[]).find(x=>x.id===id);if(a){if(a.type==='google')showScreen('googleScreen');else if(a.type==='tictactoe'){showScreen('ticTacToeScreen');resetTicTacToe();}else if(a.type==='calculator'){showScreen('calculatorScreen');calcClear();}}});}
+
+        function loadGallery(){db.collection('users').doc(currentDeviceCode).get().then(d=>{currentGallery=d.data().gallery||[];var g=document.getElementById('galleryGrid');g.innerHTML='';currentGallery.forEach((item,i)=>{var img=document.createElement('img');img.src=item.data;img.style='width:100px;height:100px;object-fit:cover;border-radius:12px;cursor:pointer;margin:4px;';img.onclick=()=>{currentPhotoIndex=i;document.getElementById('photoViewImg').src=item.data;document.getElementById('photoViewDate').textContent='Добавлено: '+new Date(item.date).toLocaleString();showScreen('photoViewScreen');};g.appendChild(img);});});}
+        function uploadPhoto(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){var img=new Image();img.onload=function(){var c=document.createElement('canvas'),ctx=c.getContext('2d'),max=50*1024,q=0.7,s=Math.sqrt(max/(ev.target.result.length*0.8))||0.5;c.width=img.width*s;c.height=img.height*s;ctx.drawImage(img,0,0,c.width,c.height);var comp=c.toDataURL('image/jpeg',q);db.collection('users').doc(currentDeviceCode).get().then(d=>{var g=d.data().gallery||[];g.push({data:comp,date:Date.now()});return db.collection('users').doc(currentDeviceCode).update({gallery:g});}).then(()=>{loadGallery();showToast(t('photoAdded'));});};img.src=ev.target.result;};r.readAsDataURL(f);}
+        function deleteCurrentPhoto(){if(currentPhotoIndex<0)return;currentGallery.splice(currentPhotoIndex,1);db.collection('users').doc(currentDeviceCode).update({gallery:currentGallery}).then(()=>{showToast(t('photoDeleted'));showScreen('galleryScreen');loadGallery();});}
+
+        function downloadApp(tp){var d;if(tp==='google')d={id:'g_'+Date.now(),name:'Google',type:'google',emoji:'🔍',safe:'Высокий'};else if(tp==='tictactoe')d={id:'t_'+Date.now(),name:t('game'),type:'tictactoe',emoji:'❌⭕',safe:'Средний'};else d={id:'c_'+Date.now(),name:t('calculator'),type:'calculator',emoji:'🔢',safe:'Высокий'};var b=new Blob([JSON.stringify(d)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=d.name+'.lolos';a.click();showToast('Файл сохранён');}
+        function handleLolosFile(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);pendingAppData=d;document.getElementById('appPreviewName').textContent=d.name;document.getElementById('appPreviewEmoji').textContent=d.emoji||'';document.getElementById('appPreviewSafety').textContent='Безопасность: '+d.safe;document.getElementById('appPreview').style.display='block';}catch(ex){showToast('Ошибка');}};r.readAsText(f);}
+        function confirmAddApp(){if(!pendingAppData)return;db.collection('users').doc(currentDeviceCode).get().then(d=>{var apps=d.data().customApps||[];if(apps.some(a=>a.id===pendingAppData.id)){showToast('Уже установлено');return;}apps.push(pendingAppData);return db.collection('users').doc(currentDeviceCode).update({customApps:apps});}).then(()=>{showToast(t('appAdded'));resetDownload();renderDesktop();goToDesktop();});}
+        function resetDownload(){document.getElementById('lolosFileInput').value='';document.getElementById('appPreview').style.display='none';pendingAppData=null;}
+
+        function showAbout(){showScreen('aboutScreen');document.getElementById('aboutCode').textContent=currentDeviceCode||'Неизвестно';document.getElementById('aboutVersion').textContent=systemVersion;document.getElementById('aboutVersionLine').innerHTML=t('aboutVersionLine')+'</strong>';document.getElementById('aboutCodeLine').innerHTML=t('aboutCodeLine')+'</strong>';}
+
+        function startUpdate(){
+            document.getElementById('updateOverlay').style.display='flex';
+            document.getElementById('updatePhaseText').textContent='Скачивание...';
+            document.getElementById('updateHint').textContent='';
+            var fill=document.getElementById('updateProgressFill');fill.style.width='0%';
+            var downloadProgress=0;
+            updateInterval=setInterval(function(){
+                downloadProgress+=100/300;
+                if(downloadProgress>=100){downloadProgress=100;clearInterval(updateInterval);
+                    fill.style.width='100%';
+                    document.getElementById('updatePhaseText').textContent='Установка...';
+                    document.getElementById('updateHint').textContent='Не выключайте устройство';
+                    fill.style.width='0%';
+                    var installProgress=0;
+                    updatePhaseInterval=setInterval(function(){
+                        installProgress+=100/600;
+                        if(installProgress>=100){installProgress=100;clearInterval(updatePhaseInterval);
+                            fill.style.width='100%';
+                            setTimeout(function(){
+                                document.getElementById('updateOverlay').style.display='none';
+                                systemVersion='1.1';
+                                db.collection('users').doc(currentDeviceCode).update({systemVersion:'1.1'});
+                                showToast(t('updated'));
+                                setupGestures();
+                                populateFontSelect();
+                                renderDesktop();
+                            },500);
+                        }else{fill.style.width=installProgress+'%';}
+                    },100);
+                }else{fill.style.width=downloadProgress+'%';}
+            },100);
+        }
+
+        function resetTicTacToe(){tictactoe={mode:null,level:null,board:Array(9).fill(''),currentPlayer:'X',gameOver:false};document.getElementById('tictactoeMenu').style.display='block';document.getElementById('tictactoeGame').style.display='none';document.getElementById('botLevels').style.display='none';document.getElementById('tictactoeButtons').innerHTML='';}
+        function startBotGame(){tictactoe.mode='bot';document.getElementById('botLevels').style.display='block';}
+        function setBotLevel(l){tictactoe.level=l;startGame();}
+        function startHumanGame(){tictactoe.mode='human';startGame();}
+        function startGame(){document.getElementById('tictactoeMenu').style.display='none';document.getElementById('tictactoeGame').style.display='block';renderBoard();}
+        function renderBoard(){var b=document.getElementById('board');b.innerHTML='';for(var i=0;i<9;i++){(function(idx){var cell=document.createElement('div');cell.className='board-cell';cell.textContent=tictactoe.board[idx];cell.style.color=tictactoe.board[idx]==='X'?'#ff3b30':'#5ac8fa';cell.onclick=()=>makeMove(idx);b.appendChild(cell);})(i);}}
+        function makeMove(i){if(tictactoe.gameOver||tictactoe.board[i]!=='')return;tictactoe.board[i]=tictactoe.currentPlayer;renderBoard();if(checkWin(tictactoe.currentPlayer)){tictactoe.gameOver=true;document.getElementById('aiMessage').textContent=tictactoe.currentPlayer+' '+t('win');addTicTacToeMenuBtn();return;}if(tictactoe.board.every(c=>c!=='')){tictactoe.gameOver=true;document.getElementById('aiMessage').textContent=t('draw');addTicTacToeMenuBtn();return;}tictactoe.currentPlayer=tictactoe.currentPlayer==='X'?'O':'X';if(tictactoe.mode==='bot'&&tictactoe.currentPlayer==='O')setTimeout(botMove,400);}
+        function addTicTacToeMenuBtn(){var c=document.getElementById('tictactoeButtons');if(!c.querySelector('button')){var btn=document.createElement('button');btn.textContent=t('menu');btn.onclick=resetTicTacToe;c.appendChild(btn);}}
+        function botMove(){var idx;if(tictactoe.level==='easy'){var e=[];for(var i=0;i<9;i++)if(tictactoe.board[i]==='')e.push(i);idx=e[Math.floor(Math.random()*e.length)];}else if(tictactoe.level==='medium'){idx=findWinningMove('O')||findWinningMove('X');if(idx==null){var e2=[];for(var j=0;j<9;j++)if(tictactoe.board[j]==='')e2.push(j);idx=e2[Math.floor(Math.random()*e2.length)];}}else{idx=findWinningMove('O')||findWinningMove('X')||(tictactoe.board[4]===''?4:null);if(idx==null){var corners=[0,2,6,8],ec=[];for(var k=0;k<corners.length;k++)if(tictactoe.board[corners[k]]==='')ec.push(corners[k]);idx=ec.length?ec[Math.floor(Math.random()*ec.length)]:null;}if(idx==null){var all=[];for(var m=0;m<9;m++)if(tictactoe.board[m]==='')all.push(m);idx=all[Math.floor(Math.random()*all.length)];}}if(idx!==undefined&&idx!==null){tictactoe.board[idx]='O';renderBoard();if(checkWin('O')){tictactoe.gameOver=true;document.getElementById('aiMessage').textContent='O '+t('win');addTicTacToeMenuBtn();return;}tictactoe.currentPlayer='X';}}
+        function findWinningMove(p){var w=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];for(var i=0;i<w.length;i++){var a=w[i][0],b=w[i][1],c=w[i][2],board=tictactoe.board;if(board[a]===p&&board[b]===p&&board[c]==='')return c;if(board[a]===p&&board[c]===p&&board[b]==='')return b;if(board[b]===p&&board[c]===p&&board[a]==='')return a;}return null;}
+        function checkWin(p){return[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(x=>x.every(i=>tictactoe.board[i]===p));}
+
+        function calcInput(v){calcExpression+=v;document.getElementById('calcDisplay').value=calcExpression;}
+        function calcClear(){calcExpression='';document.getElementById('calcDisplay').value='';}
+        function calcCalculate(){try{var r=eval(calcExpression.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'));document.getElementById('calcDisplay').value=r;calcExpression=r.toString();}catch(e){document.getElementById('calcDisplay').value='Ошибка';calcExpression='';}}
+
+        function openCalendar(){showScreen('calendarScreen');var now=new Date();calYear=now.getFullYear();calMonth=now.getMonth();drawCalendar();}
+        function drawCalendar(){var months=currentLanguage==='ru'?['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];var days=currentLanguage==='ru'?['Пн','Вт','Ср','Чт','Пт','Сб','Вс']:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];document.getElementById('calMonth').textContent=months[calMonth]+' '+calYear;var g=document.getElementById('calGrid');g.innerHTML='';days.forEach(d=>g.innerHTML+='<div style="font-weight:bold;">'+d+'</div>');var fd=new Date(calYear,calMonth,1).getDay();fd=fd===0?6:fd-1;for(var i=0;i<fd;i++)g.innerHTML+='<div></div>';var dim=new Date(calYear,calMonth+1,0).getDate(),today=new Date();for(var day=1;day<=dim;day++){var isToday=day===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();g.innerHTML+='<div style="padding:6px;'+(isToday?'background:var(--accent);border-radius:50%;':'')+'">'+day+'</div>';}}
+        function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}drawCalendar();}
+    </script>
+</body>
+</html>
