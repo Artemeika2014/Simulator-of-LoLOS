@@ -1,0 +1,4179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>LoLOS 3.1</title>
+    <style>
+        /* ============================================================
+           ОСНОВНЫЕ СТИЛИ
+           ============================================================ */
+        :root {
+            --bg: linear-gradient(135deg, #1a1a3e, #2d1b69);
+            --glass: rgba(255,255,255,0.08);
+            --glass-border: rgba(255,255,255,0.15);
+            --text: #fff;
+            --accent: #7b5ea7;
+            --wallpaper: none;
+        }
+        .theme-light {
+            --bg: linear-gradient(135deg, #e8e0ff, #c8b8f0);
+            --glass: rgba(0,0,0,0.06);
+            --glass-border: rgba(0,0,0,0.1);
+            --text: #1a1a3e;
+            --accent: #5a4a8a;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.6s ease;
+        }
+        body.has-wallpaper {
+            background: var(--wallpaper) !important;
+            background-size: cover !important;
+            background-position: center !important;
+        }
+
+        .screen {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .screen.active {
+            display: flex;
+            animation: fadeSlideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes fadeSlideIn {
+            from { opacity:0; transform:translateY(20px) scale(0.98); }
+            to { opacity:1; transform:translateY(0) scale(1); }
+        }
+
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 28px 22px;
+            border: 1px solid var(--glass-border);
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.3);
+            animation: glassPop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes glassPop {
+            from { opacity:0; transform:scale(0.9) rotate(-2deg); }
+            to { opacity:1; transform:scale(1) rotate(0); }
+        }
+
+        input, select, textarea {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 14px;
+            border-radius: 14px;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            outline: none;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(123,94,167,0.2);
+        }
+        textarea { resize: vertical; min-height: 120px; }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-size: 1rem;
+            margin: 6px 0;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            overflow: hidden;
+        }
+        button:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(123,94,167,0.4);
+        }
+        button:active { transform: scale(0.95); }
+        button.secondary { background: rgba(255,255,255,0.15); }
+        button:disabled { opacity: 0.4; cursor: default; transform: none; }
+        button.success { background: #4CAF50; }
+        button.danger { background: #ff3b30; }
+
+        .app-icon {
+            width: 78px;
+            height: 78px;
+            border-radius: 22px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            flex-direction: column;
+            color: white;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            overflow: hidden;
+            -webkit-touch-callout: none;
+        }
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 22px;
+        }
+        .app-icon:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 12px 30px rgba(123,94,167,0.4);
+        }
+        .app-icon:active { transform: scale(0.9); }
+        .app-icon .icon-emoji {
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+        .app-icon .icon-label {
+            font-size: 0.6rem;
+            margin-top: 4px;
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            position: absolute;
+            bottom: 6px;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 8px;
+            border-radius: 10px;
+            backdrop-filter: blur(4px);
+        }
+        .app-icon .update-dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 14px;
+            height: 14px;
+            background: #ff3b30;
+            border-radius: 50%;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity:1; transform:scale(1); }
+            50% { opacity:0.4; transform:scale(1.3); }
+        }
+
+        .desktop {
+            display: flex;
+            gap: 22px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            align-content: center;
+            padding: 20px;
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            z-index: 10;
+            animation: slideDown 0.6s ease;
+        }
+        @keyframes slideDown {
+            from { opacity:0; transform:translateY(-20px); }
+            to { opacity:1; transform:translateY(0); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 200;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        .version-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.7rem;
+            opacity: 0.4;
+        }
+        .support-ended {
+            background: rgba(255,59,48,0.2);
+            border: 2px solid #ff3b30;
+            padding: 20px;
+            border-radius: 16px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        /* ============================================================
+           ICON REMAKER
+           ============================================================ */
+        .icon-remaker-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            max-width: 400px;
+            padding: 10px 0;
+        }
+        .icon-remaker-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 16px;
+            background: var(--glass);
+            border-radius: 14px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-remaker-item:hover {
+            transform: translateX(4px);
+            border-color: var(--accent);
+        }
+        .icon-remaker-item .preview {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .icon-remaker-item .preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .icon-remaker-item .info {
+            flex: 1;
+        }
+        .icon-remaker-item .info .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .icon-remaker-item .info .status {
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+        .icon-remaker-item .status-icon {
+            font-size: 1.2rem;
+            opacity: 0.4;
+        }
+        .icon-remaker-item .status-icon.custom {
+            opacity: 1;
+            color: #4CAF50;
+        }
+
+        /* ============================================================
+           ICON REMAKER МЕНЮ
+           ============================================================ */
+        .icon-remaker-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            z-index: 800;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .icon-remaker-menu-overlay.active {
+            display: flex;
+        }
+        .icon-remaker-menu-box {
+            background: var(--bg);
+            border-radius: 28px;
+            padding: 28px 24px;
+            max-width: 380px;
+            width: 100%;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            text-align: center;
+            animation: modalPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .icon-remaker-menu-box .preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 22px;
+            margin: 0 auto 12px;
+            background: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            overflow: hidden;
+            border: 2px dashed var(--glass-border);
+        }
+        .icon-remaker-menu-box .preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .icon-remaker-menu-box .app-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .icon-remaker-menu-box .menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin: 4px 0;
+            font-size: 0.95rem;
+        }
+        .icon-remaker-menu-box .menu-btn:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: var(--accent);
+        }
+        .icon-remaker-menu-box .menu-btn .icon {
+            font-size: 1.3rem;
+            width: 28px;
+            text-align: center;
+        }
+        .icon-remaker-menu-box .preview-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .icon-remaker-menu-box .preview-actions button {
+            flex: 1;
+            margin: 0;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        .icon-remaker-menu-box .preview-actions button.secondary {
+            background: rgba(255,255,255,0.1);
+        }
+        .icon-remaker-menu-box .preview-area {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--glass-border);
+        }
+        .icon-remaker-menu-box .preview-area .preview-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 0 auto;
+            border: 2px solid var(--glass-border);
+        }
+        .icon-remaker-menu-box .preview-area .preview-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ============================================================
+           LOLI ЧАТ
+           ============================================================ */
+        .loli-chat {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 80vh;
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            padding: 16px 20px;
+            overflow: hidden;
+            animation: glassPop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .loli-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px 0;
+            margin-bottom: 8px;
+        }
+        .loli-messages::-webkit-scrollbar { width: 4px; }
+        .loli-messages::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+        .loli-message {
+            max-width: 80%;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            animation: messageIn 0.3s ease;
+        }
+        .loli-message.user {
+            align-self: flex-end;
+            background: var(--accent);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .loli-message.bot {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.1);
+            border-bottom-left-radius: 4px;
+        }
+        .loli-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .loli-header .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .loli-header .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .loli-header .status {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        .loli-header .header-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+        .loli-header .header-actions button {
+            width: auto;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            margin: 0;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .loli-header .header-actions button:hover {
+            background: var(--accent);
+            color: white;
+        }
+        .loli-header .header-actions button.danger {
+            background: rgba(255,59,48,0.2);
+            border-color: #ff3b30;
+        }
+        .loli-header .header-actions button.danger:hover {
+            background: #ff3b30;
+            color: white;
+        }
+        .loli-input-area {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .loli-input-area input {
+            flex: 1;
+            margin: 0;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+        }
+        .loli-input-area button {
+            width: auto;
+            padding: 10px 16px;
+            margin: 0;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        .loli-typing {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            min-height: 24px;
+        }
+        .loli-typing .smiley {
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .loli-typing .smiley.talking {
+            animation: talk 0.5s ease-in-out infinite alternate;
+        }
+        @keyframes talk {
+            0% { transform:scale(1); opacity:1; }
+            100% { transform:scale(1.3); opacity:0.7; }
+        }
+
+        /* ============================================================
+           Lol Apps
+           ============================================================ */
+        .lolapps-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            max-width: 420px;
+            padding: 10px 0;
+        }
+        .app-card {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .app-card .icon {
+            font-size: 2.2rem;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .app-card .icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .app-card .info {
+            flex: 1;
+        }
+        .app-card .info .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .app-card .info .desc {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 2px;
+        }
+        .app-card .action {
+            flex-shrink: 0;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .app-card .action .download-btn {
+            width: auto;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            margin: 0;
+            border-radius: 10px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .app-card .action .download-btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+        .app-card .action .download-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+            transform: none;
+        }
+        .app-card .action .download-btn.installed {
+            background: #4CAF50;
+            cursor: default;
+        }
+        .app-card .action .download-progress {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            min-width: 100px;
+        }
+        .app-card .action .download-progress.active {
+            display: flex;
+        }
+        .app-card .action .download-progress .bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            min-width: 50px;
+        }
+        .app-card .action .download-progress .bar .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), #4CAF50);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .app-card .action .download-progress .percent {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            min-width: 32px;
+            text-align: right;
+        }
+        .app-card .action .installed-label {
+            color: #4CAF50;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        /* ============================================================
+           МОДАЛКИ
+           ============================================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            z-index: 700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; }
+        @keyframes fadeIn {
+            from { opacity:0; }
+            to { opacity:1; }
+        }
+        .modal-box {
+            background: var(--bg);
+            border-radius: 28px;
+            padding: 28px 24px;
+            max-width: 440px;
+            width: 100%;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: modalPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            text-align: center;
+        }
+        .modal-box h2 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+        .modal-box .modal-icon {
+            font-size: 3rem;
+            margin-bottom: 8px;
+        }
+        .modal-box .modal-text {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .modal-box .modal-text strong {
+            color: #ff6b6b;
+        }
+        .modal-box .modal-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .modal-box .modal-actions button {
+            flex: 1;
+            margin: 0;
+            min-width: 100px;
+        }
+
+        /* ============================================================
+           МЕНЮ ВХОДА
+           ============================================================ */
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 40px 30px 30px;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            text-align: center;
+            animation: fadeIn 0.6s ease;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        .auth-container::-webkit-scrollbar {
+            width: 3px;
+        }
+        .auth-container::-webkit-scrollbar-thumb {
+            background: rgba(123,94,167,0.3);
+            border-radius: 10px;
+        }
+
+        .auth-logo {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #7b5ea7, #5a4a8a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .auth-sub {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 4px;
+            margin-bottom: 28px;
+            text-transform: uppercase;
+        }
+        .auth-version {
+            display: inline-block;
+            background: rgba(123,94,167,0.15);
+            border: 1px solid rgba(123,94,167,0.2);
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 0.6rem;
+            color: #7b5ea7;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+
+        .auth-input-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .auth-input-group input {
+            width: 100%;
+            padding: 16px 18px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            color: #fff;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            text-align: center;
+            transition: all 0.3s;
+            outline: none;
+        }
+        .auth-input-group input:focus {
+            border-color: #7b5ea7;
+            box-shadow: 0 0 30px rgba(123,94,167,0.1);
+            background: rgba(255,255,255,0.08);
+        }
+        .auth-input-group input::placeholder {
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 1px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+            background: #7b5ea7;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(123,94,167,0.3);
+        }
+        .auth-btn:active { transform: scale(0.97); }
+        .auth-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .auth-btn-secondary {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.08);
+            margin-top: 10px;
+        }
+        .auth-btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 18px 0;
+        }
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+        }
+        .auth-divider span {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.2);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .auth-error {
+            background: rgba(255,59,48,0.1);
+            border: 1px solid rgba(255,59,48,0.2);
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            color: #ff6b6b;
+            margin-top: 12px;
+            display: none;
+            text-align: left;
+        }
+        .auth-error.show {
+            display: block;
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,100% { transform:translateX(0); }
+            25% { transform:translateX(-6px); }
+            75% { transform:translateX(6px); }
+        }
+
+        .auth-success {
+            background: rgba(123,94,167,0.1);
+            border: 1px solid rgba(123,94,167,0.2);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #b89fd6;
+            margin-top: 12px;
+            display: none;
+            text-align: center;
+        }
+        .auth-success.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .auth-key-display {
+            background: rgba(255,255,255,0.04);
+            border: 1px dashed rgba(123,94,167,0.3);
+            border-radius: 14px;
+            padding: 14px;
+            margin: 14px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            color: #b89fd6;
+            word-break: break-all;
+        }
+
+        .auth-footer {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.15);
+            letter-spacing: 1px;
+        }
+        .auth-footer .dot {
+            color: #7b5ea7;
+            display: inline-block;
+            animation: blink 1.5s step-end infinite;
+        }
+        @keyframes blink {
+            0%,100% { opacity:1; }
+            50% { opacity:0; }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform:rotate(360deg); }
+        }
+
+        .lang-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 16px 0;
+        }
+        .lang-btn {
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .lang-btn:hover {
+            border-color: rgba(123,94,167,0.3);
+            color: #fff;
+        }
+        .lang-btn.active {
+            border-color: #7b5ea7;
+            background: rgba(123,94,167,0.15);
+            color: #fff;
+        }
+
+        .rules-container {
+            text-align: left;
+            margin: 12px 0;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .rules-container .rules-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #b89fd6;
+        }
+        .rules-container .rules-text {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            line-height: 1.6;
+        }
+        .rules-container .rules-text li {
+            list-style: none;
+            padding: 2px 0;
+        }
+        .rules-container .rules-text li::before {
+            content: '• ';
+            color: #7b5ea7;
+        }
+        .rules-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+        }
+        .rules-check input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #7b5ea7;
+            cursor: pointer;
+        }
+
+        .support-ended-msg {
+            background: rgba(255,59,48,0.15);
+            border: 2px solid #ff3b30;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin: 12px 0;
+            text-align: center;
+        }
+        .support-ended-msg .title {
+            font-weight: bold;
+            color: #ff6b6b;
+            font-size: 1rem;
+        }
+        .support-ended-msg .text {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* ============================================================
+           ОСТАЛЬНЫЕ СТИЛИ
+           ============================================================ */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .toggle-row .toggle-label {
+            font-size: 0.95rem;
+        }
+        .toggle-row .toggle-label .desc {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            display: block;
+        }
+        .toggle-switch {
+            width: 48px;
+            height: 28px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .toggle-switch.active { background: var(--accent); }
+        .toggle-switch .knob {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .toggle-switch.active .knob { left: 23px; }
+
+        .update-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .update-buttons button {
+            flex: 1;
+            min-width: 120px;
+            margin: 0;
+        }
+        .update-progress-wrap {
+            margin-top: 12px;
+            display: none;
+        }
+        .update-progress-wrap.active { display: block; }
+        .update-progress-wrap .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .update-progress-wrap .progress-bar .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), #4CAF50);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .update-progress-wrap .progress-text {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .update-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .update-overlay .update-logo {
+            font-size: 4rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 15px;
+            animation: pulse 1.5s infinite;
+        }
+        .update-overlay .update-text { color: white; font-size: 1rem; margin-bottom: 10px; }
+        .update-overlay .progress-bar {
+            width: 220px;
+            height: 8px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .update-overlay .progress-bar .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), #ff6b6b);
+            border-radius: 10px;
+            transition: width 0.5s linear;
+        }
+
+        .reboot-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .reboot-overlay.active { display: flex; }
+        .reboot-overlay .logo {
+            font-size: 5rem;
+            font-weight: 900;
+            color: #fff;
+            letter-spacing: 4px;
+            animation: rebootPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes rebootPulse {
+            0%,100% { opacity:1; transform:scale(1); }
+            50% { opacity:0.6; transform:scale(1.05); }
+        }
+        .reboot-overlay .sub {
+            color: rgba(255,255,255,0.2);
+            font-size: 0.8rem;
+            margin-top: 12px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+        }
+
+        /* ============================================================
+           ТЕРМИНАЛ
+           ============================================================ */
+        .terminal-container {
+            background: #0a0a0f;
+            border: 1px solid #00ff8844;
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            max-width: 700px;
+            min-height: 400px;
+            box-shadow: 0 0 60px rgba(0,255,136,0.05);
+        }
+        .terminal-header-custom {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #00ff8822;
+            margin-bottom: 12px;
+        }
+        .terminal-header-custom .dots {
+            display: flex;
+            gap: 6px;
+        }
+        .terminal-header-custom .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .terminal-header-custom .dot-red { background: #ff5f56; }
+        .terminal-header-custom .dot-yellow { background: #ffbd2e; }
+        .terminal-header-custom .dot-green { background: #27c93f; }
+        .terminal-header-custom .title {
+            margin-left: 12px;
+            font-size: 0.85rem;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        .terminal-header-custom .title span { color: #00ff88; }
+        .terminal-output {
+            min-height: 200px;
+            padding: 4px 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 350px;
+            overflow-y: auto;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+        }
+        .terminal-output .line .prompt { color: #00ff88; font-weight: bold; }
+        .terminal-output .line .cmd { color: #fff; }
+        .terminal-output .line .error { color: #ff5f56; }
+        .terminal-output .line .success { color: #27c93f; }
+        .terminal-output .line .info { color: #5bc0ff; }
+        .terminal-output .line .warn { color: #ffbd2e; }
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            border-top: 1px solid #00ff8822;
+            padding-top: 12px;
+        }
+        .terminal-input-line .prompt-symbol {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .terminal-input-line input {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            flex: 1;
+            outline: none;
+        }
+        .terminal-input-line input::placeholder { color: #444; }
+        .terminal-input-line input:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .terminal-status {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 10px;
+            margin-top: 10px;
+            border-top: 1px solid #00ff8822;
+            font-size: 0.7rem;
+            color: #444;
+        }
+        .terminal-status .status { color: #27c93f; }
+        .terminal-status .version { color: #5bc0ff; }
+
+        .terminal-ascii {
+            color: #00ff88;
+            font-size: 0.55rem;
+            line-height: 1.2;
+            margin-bottom: 8px;
+            opacity: 0.3;
+            text-align: center;
+        }
+        .terminal-progress-container { margin: 4px 0; }
+        .terminal-progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #00ff8833;
+        }
+        .terminal-progress-bar .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00ff88, #00ffcc);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .terminal-progress-text {
+            font-size: 0.65rem;
+            color: #888;
+            margin-top: 2px;
+            text-align: right;
+        }
+        .terminal-progress-done { color: #27c93f; }
+
+        @media (max-width: 480px) {
+            .app-card { padding: 12px 14px; gap: 10px; }
+            .app-card .icon { font-size: 1.8rem; width: 40px; height: 40px; }
+            .app-card .action { min-width: 70px; }
+            .app-card .action .download-btn { font-size: 0.65rem; padding: 4px 10px; }
+            .auth-container { padding: 30px 20px 24px; }
+            .auth-logo { font-size: 2.2rem; }
+            .auth-input-group input { padding: 14px 16px; font-size: 0.9rem; }
+            .lang-btn { padding: 6px 14px; font-size: 0.75rem; }
+            .terminal-container { padding: 14px; }
+            .terminal-output { font-size: 0.8rem; max-height: 250px; }
+        }
+
+        .terminal-output::-webkit-scrollbar { width: 3px; }
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #00ff8844;
+            border-radius: 10px;
+        }
+
+        .supchik-chat {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 80vh;
+            width: 100%;
+            max-width: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            border: 1px solid var(--glass-border);
+            padding: 16px 20px;
+            overflow: hidden;
+            animation: glassPop 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .supchik-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px 0;
+            margin-bottom: 8px;
+        }
+        .supchik-messages::-webkit-scrollbar { width: 4px; }
+        .supchik-messages::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+        .supchik-message {
+            max-width: 80%;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            animation: messageIn 0.3s ease;
+        }
+        .supchik-message.user {
+            align-self: flex-end;
+            background: var(--accent);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .supchik-message.bot {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.1);
+            border-bottom-left-radius: 4px;
+        }
+        .supchik-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .supchik-header .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        .supchik-header .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .supchik-header .status {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+        .supchik-header .header-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+        .supchik-header .header-actions button {
+            width: auto;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            margin: 0;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .supchik-header .header-actions button:hover {
+            background: var(--accent);
+            color: white;
+        }
+        .supchik-header .header-actions button.danger {
+            background: rgba(255,59,48,0.2);
+            border-color: #ff3b30;
+        }
+        .supchik-header .header-actions button.danger:hover {
+            background: #ff3b30;
+            color: white;
+        }
+        .supchik-input-area {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .supchik-input-area input {
+            flex: 1;
+            margin: 0;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+        }
+        .supchik-input-area button {
+            width: auto;
+            padding: 10px 16px;
+            margin: 0;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        .supchik-typing {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            min-height: 24px;
+        }
+        .supchik-typing .smiley {
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .supchik-typing .smiley.talking {
+            animation: talk 0.5s ease-in-out infinite alternate;
+        }
+
+        .lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            backdrop-filter: blur(20px);
+        }
+        .lock-screen .lock-time { font-size: 5rem; font-weight: bold; }
+        .lock-screen .lock-date { font-size: 1.5rem; opacity: 0.8; margin-top: 8px; }
+
+        .quick-menu {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 260px;
+            height: 100%;
+            background: rgba(20,20,40,0.95);
+            backdrop-filter: blur(20px);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            padding: 60px 20px 20px;
+            gap: 12px;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .quick-menu.open { transform: translateX(0); }
+
+        .wallpaper-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        .wallpaper-modal.active { display: flex; }
+        .wallpaper-modal .preview {
+            max-width: 100%;
+            max-height: 60vh;
+            border-radius: 20px;
+            object-fit: contain;
+            margin: 10px 0;
+        }
+        .wallpaper-modal .controls {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .wallpaper-modal .controls button {
+            width: auto;
+            padding: 10px 20px;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .calc-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--glass-border);
+            color: var(--text);
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .calc-btn:hover { background: rgba(255,255,255,0.2); transform:scale(1.05); }
+        .calc-btn:active { transform:scale(0.95); }
+
+        .board-cell {
+            width: 75px;
+            height: 75px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .board-cell:hover { background: var(--glass); transform:scale(1.05); }
+
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .text-muted { opacity: 0.6; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    АВТОРИЗАЦИЯ
+    ============================================================ -->
+    <div id="authScreen" class="screen active">
+        <div class="auth-container" id="authContainer">
+            <div class="auth-logo">LoLOS</div>
+            <div class="auth-sub" id="authSub">Вход в систему</div>
+            <div class="auth-version">🔐 v3.1</div>
+
+            <div class="lang-selector" id="langSelector">
+                <button class="lang-btn active" data-lang="ru" onclick="selectLang('ru')">🇷🇺 RU</button>
+                <button class="lang-btn" data-lang="en" onclick="selectLang('en')">🇬🇧 EN</button>
+            </div>
+
+            <div class="rules-container" id="rulesContainer">
+                <div class="rules-title" id="rulesTitle">📋 Правила использования LoLOS</div>
+                <div class="rules-text" id="rulesText">
+                    <li>Не нарушать работу сети</li>
+                    <li>Уважать других пользователей</li>
+                    <li>Не пытаться обойти защиту</li>
+                    <li>Использовать систему по назначению</li>
+                </div>
+                <div class="rules-check">
+                    <input type="checkbox" id="acceptRules" onchange="toggleAcceptBtn()">
+                    <label for="acceptRules" id="acceptLabel">Я принимаю условия использования</label>
+                </div>
+            </div>
+
+            <div class="auth-input-group">
+                <input type="text" id="keyInput" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" inputmode="text" oninput="formatKey(this)">
+            </div>
+
+            <button class="auth-btn" id="loginBtn" onclick="login()" disabled>
+                ➤ Войти
+            </button>
+
+            <div class="auth-divider">
+                <span>или</span>
+            </div>
+
+            <button class="auth-btn auth-btn-secondary" id="registerBtn" onclick="register()">
+                🔑 Создать новый ключ
+            </button>
+
+            <div class="auth-error" id="errorMsg">❌ Неверный ключ</div>
+            <div class="auth-success" id="successMsg">✅ Вход выполнен!</div>
+
+            <div id="supportEndedContainer" style="display:none;">
+                <div class="support-ended-msg">
+                    <div class="title">⚠️ Поддержка закончилась</div>
+                    <div class="text" id="supportEndedText">Версия 2.0 больше не поддерживается. Создайте новый ключ для LoLOS 3.0!</div>
+                    <button onclick="register()" style="background:#ff3b30;margin-top:8px;padding:10px;border:none;border-radius:12px;color:white;font-weight:bold;cursor:pointer;width:100%;">
+                        🔑 Создать новый ключ
+                    </button>
+                </div>
+            </div>
+
+            <div id="newKeyContainer" style="display:none;">
+                <div class="auth-key-display" id="newKeyDisplay">---- ---- ---- ----</div>
+                <button class="auth-btn" style="background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.08);" onclick="copyKey()">
+                    📋 Скопировать ключ
+                </button>
+            </div>
+
+            <div class="auth-footer">
+                <span class="dot">●</span> <span id="footerText">Система готова</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    РАБОЧИЙ СТОЛ
+    ============================================================ -->
+    <div id="desktopScreen" class="screen">
+        <div class="status-bar"><span id="clockDisplay"></span><span id="osNameDisplay">LoLOS</span></div>
+        <div class="desktop" id="desktopContainer"></div>
+        <div class="version-badge" id="versionBadge">v2.0</div>
+    </div>
+
+    <!-- ============================================================
+    ГАЛЕРЕЯ
+    ============================================================ -->
+    <div id="galleryScreen" class="screen"><button onclick="goToDesktop()" id="galleryBackBtn">← Назад</button><div id="galleryGrid" style="display:flex;flex-wrap:wrap;gap:8px;padding:50px 10px;justify-content:center;"></div><input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="uploadPhoto(event)"><button onclick="document.getElementById('photoInput').click()" style="position:absolute;bottom:25px;right:25px;width:50px;height:50px;border-radius:50%;padding:0;">+</button></div>
+    <div id="photoViewScreen" class="screen" style="background:#000;"><button onclick="showScreen('galleryScreen');loadGallery();" id="photoBackBtn">← Назад</button><img id="photoViewImg" style="max-width:90%;max-height:70%;border-radius:12px;"><p id="photoViewDate" style="margin-top:10px;"></p><button onclick="deleteCurrentPhoto()" style="background:#ff3b30;margin-top:10px;" id="photoDeleteBtn">Удалить</button></div>
+
+    <!-- ============================================================
+    ЛОЛ ЭПС
+    ============================================================ -->
+    <div id="lolAppsScreen" class="screen">
+        <button onclick="goToDesktop()" id="lolAppsBackBtn">← Назад</button>
+        <div class="lolapps-grid" id="lolAppsGrid"></div>
+    </div>
+
+    <!-- ============================================================
+    ICON REMAKER (ТОЛЬКО 3.1)
+    ============================================================ -->
+    <div id="iconRemakerScreen" class="screen">
+        <button onclick="goToDesktop()" id="iconRemakerBackBtn">← Назад</button>
+        <div style="width:100%;max-width:420px;text-align:center;padding:10px 0;">
+            <h2 style="font-size:1.3rem;margin-bottom:8px;">🎨 Icon Remaker</h2>
+            <p style="opacity:0.5;font-size:0.8rem;">Выбери приложение для смены иконки</p>
+        </div>
+        <div class="icon-remaker-list" id="iconRemakerList"></div>
+    </div>
+
+    <!-- ============================================================
+    ICON REMAKER МЕНЮ
+    ============================================================ -->
+    <div class="icon-remaker-menu-overlay" id="iconRemakerMenu">
+        <div class="icon-remaker-menu-box">
+            <div class="preview" id="irPreview">
+                <span class="icon-emoji">📱</span>
+            </div>
+            <div class="app-name" id="irAppName">Приложение</div>
+
+            <div class="menu-btn" onclick="irSelectFromGallery()">
+                <span class="icon">📷</span> Выбрать из галереи
+            </div>
+            <div class="menu-btn" onclick="irSelectFromDevice()">
+                <span class="icon">📁</span> Выбрать с телефона
+            </div>
+            <div class="menu-btn" onclick="irResetIcon()">
+                <span class="icon">🔄</span> Вернуть оригинал
+            </div>
+
+            <div class="preview-area" id="irPreviewArea">
+                <div style="font-size:0.8rem;opacity:0.6;margin-bottom:6px;">Предпросмотр:</div>
+                <div class="preview-img">
+                    <img id="irPreviewImage" src="">
+                </div>
+                <div class="preview-actions">
+                    <button class="secondary" onclick="irCancelPreview()">❌ Отмена</button>
+                    <button onclick="irConfirmPreview()" style="background:#4CAF50;">✅ Готово</button>
+                </div>
+            </div>
+
+            <div class="menu-btn" onclick="closeIconRemakerMenu()" style="margin-top:8px;border-color:transparent;justify-content:center;opacity:0.6;">
+                ❌ Отмена
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    КАЛЕНДАРЬ
+    ============================================================ -->
+    <div id="calendarScreen" class="screen"><button onclick="goToDesktop()" id="calBackBtn">← Назад</button><div class="glass" style="width:320px;text-align:center;"><h2 id="calMonth"></h2><div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div><button onclick="changeMonth(-1)">←</button><button onclick="changeMonth(1)">→</button></div></div>
+
+    <!-- ============================================================
+    GOOGLE
+    ============================================================ -->
+    <div id="googleScreen" class="screen" style="padding:0;"><iframe src="https://www.google.com/webhp?igu=1" style="width:100%;height:100%;border:none;"></iframe><button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);">←</button></div>
+
+    <!-- ============================================================
+    МЕССЕНДЖЕР
+    ============================================================ -->
+    <div id="messengerScreen" class="screen" style="padding:0;background:var(--bg);">
+        <iframe src="https://artemeika2014.github.io/Messenger-Lol/" style="width:100%;height:100%;border:none;"></iframe>
+        <button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;background:rgba(0,0,0,0.7);width:auto;padding:8px 16px;border-radius:20px;z-index:10;">← Назад</button>
+    </div>
+
+    <!-- ============================================================
+    SUPCHIK (2.0)
+    ============================================================ -->
+    <div id="supchikScreen" class="screen" style="padding:10px;">
+        <button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;width:auto;padding:6px 14px;border-radius:20px;z-index:10;background:rgba(0,0,0,0.6);font-size:0.8rem;">← Назад</button>
+        <div class="supchik-chat">
+            <div class="supchik-header">
+                <div class="avatar">🤖</div>
+                <div>
+                    <div class="name">Supchik</div>
+                    <div class="status" id="supchikStatus">онлайн</div>
+                </div>
+                <div class="header-actions">
+                    <button class="danger" onclick="clearSupchikChat()" title="Очистить чат">🗑️</button>
+                </div>
+            </div>
+            <div class="supchik-messages" id="supchikMessages"></div>
+            <div class="supchik-typing" id="supchikTyping">
+                <span class="smiley" id="supchikSmiley">:)</span>
+                <span id="supchikDots"></span>
+            </div>
+            <div class="supchik-input-area">
+                <input type="text" id="supchikInput" placeholder="Напиши сообщение..." onkeydown="if(event.key==='Enter') sendSupchikMessage()">
+                <button onclick="sendSupchikMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    LOLI (3.0+ С GROQ)
+    ============================================================ -->
+    <div id="loliScreen" class="screen" style="padding:10px;">
+        <button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;width:auto;padding:6px 14px;border-radius:20px;z-index:10;background:rgba(0,0,0,0.6);font-size:0.8rem;">← Назад</button>
+        <div class="loli-chat">
+            <div class="loli-header">
+                <div class="avatar">🛒</div>
+                <div>
+                    <div class="name">LoLi</div>
+                    <div class="status" id="loliStatus">онлайн</div>
+                </div>
+                <div class="header-actions">
+                    <button onclick="openPromptModal()" title="Изменить промт">✏️</button>
+                    <button class="danger" onclick="clearLoliChat()" title="Очистить чат">🗑️</button>
+                </div>
+            </div>
+            <div class="loli-messages" id="loliMessages"></div>
+            <div class="loli-typing" id="loliTyping">
+                <span class="smiley" id="loliSmiley">:)</span>
+                <span id="loliDots"></span>
+            </div>
+            <div class="loli-input-area">
+                <input type="text" id="loliInput" placeholder="Напиши сообщение..." onkeydown="if(event.key==='Enter') sendLoliMessage()">
+                <button onclick="sendLoliMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    НАСТРОЙКИ
+    ============================================================ -->
+    <div id="settingsScreen" class="screen">
+        <button onclick="goToDesktop()" id="settingsBackBtn">← Назад</button>
+        <div class="glass" id="settingsGlass">
+            <h2 id="settingsTitle">Настройки</h2>
+            <label id="settingsFontLabel">Шрифт<select id="fontSelect" onchange="settings.font=this.value;applyFont();"></select></label>
+            <label id="settingsThemeLabel">Тема<select id="themeSelect" onchange="settings.theme=this.value;applyTheme();"><option value="dark" id="themeDarkOpt">Тёмная</option><option value="light" id="themeLightOpt">Светлая</option></select></label>
+            <label id="settingsTimeLabel">Время<select id="timeModeSelect" onchange="settings.timeMode=this.value;document.getElementById('manualTimeBlock').style.display=this.value==='manual'?'block':'none';"><option value="auto" id="timeAutoOpt">Авто</option><option value="manual" id="timeManualOpt">Вручную</option></select></label>
+            <div id="manualTimeBlock" style="display:none;"><input type="datetime-local" id="manualDateTime" onchange="settings.manualTime=this.value;"><label id="settingsFormatLabel">Формат<select id="hourFormat" onchange="settings.hourFormat=this.value;"><option value="24">24h</option><option value="12">12h</option></select></label></div>
+            <div id="toggleContainer" style="display:none;">
+                <div class="toggle-row">
+                    <div class="toggle-label">
+                        Открытие приложений через бота
+                        <span class="desc">LoLi может открывать приложения по просьбе</span>
+                    </div>
+                    <div class="toggle-switch" id="toggleOpenApps" onclick="toggleSetting('allowBotOpenApps')">
+                        <div class="knob"></div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="showScreen('updateScreen')" id="settingsUpdateBtn">🔄 Обновление ПО</button>
+            <button onclick="showAbout()" id="settingsAboutBtn">ℹ️ Об устройстве</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    ОБ УСТРОЙСТВЕ
+    ============================================================ -->
+    <div id="aboutScreen" class="screen"><button onclick="goToDesktop()" id="aboutBackBtn">← Назад</button><div class="glass" style="text-align:center;"><h2 id="aboutTitle">Об устройстве</h2><p id="aboutOS">ОС: <strong id="aboutOSName">LoLOS</strong></p><p id="aboutVersionLine">Версия: <strong id="aboutVersion">2.0</strong></p><p id="aboutCodeLine">Код: <strong id="aboutCode"></strong></p></div></div>
+
+    <!-- ============================================================
+    ОБНОВЛЕНИЕ
+    ============================================================ -->
+    <div id="updateScreen" class="screen">
+        <button onclick="goToDesktop()" id="updateBackBtn">← Назад</button>
+        <div class="glass" style="text-align:center;">
+            <h2 id="updateTitle" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+                <span>Обновление ПО</span>
+                <span id="updateTitleBadge" style="font-size:0.6rem;background:linear-gradient(135deg,#e67e22,#ff6b6b);padding:2px 12px;border-radius:12px;font-weight:bold;letter-spacing:0.5px;">3.1</span>
+            </h2>
+            <div id="updateAvailable">
+                <p style="font-size:1.3rem;font-weight:bold;" id="updateVersionName">LoLOS 3.1</p>
+                <p style="text-align:left;margin:10px 0;" id="updateFeatures">
+                    • Новое меню входа ✨<br>
+                    • Icon Remaker 🎨<br>
+                    • Смена иконок с предпросмотром 🖼️<br>
+                    • Командная строка 💻<br>
+                    • Кнопка перезагрузки 🔄<br>
+                    • Много улучшений! 🔥
+                </p>
+                <div class="update-buttons">
+                    <button onclick="startUpdate('download')" id="updateDownloadBtn">📥 Загрузить</button>
+                    <button onclick="startUpdate('full')" id="updateFullBtn">📥 Загрузить и установить</button>
+                </div>
+                <div class="update-progress-wrap" id="updateProgressWrap">
+                    <div class="progress-bar"><div class="fill" id="updateProgressFill"></div></div>
+                    <div class="progress-text" id="updateProgressText">0%</div>
+                    <button class="hidden" id="updateInstallBtn" onclick="installUpdate()">✅ Установить</button>
+                </div>
+            </div>
+            <p id="noUpdateMsg" style="opacity:0.7;">Пока никаких обновлений нет</p>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    КРЕСТИКИ-НОЛИКИ
+    ============================================================ -->
+    <div id="ticTacToeScreen" class="screen"><button onclick="goToDesktop()" id="tictactoeBackBtn">← Назад</button><div id="tictactoeMenu" class="glass" style="text-align:center;"><h2 id="tictactoeModeTitle">Режим</h2><button onclick="startBotGame()" id="tictactoeBotBtn">Бот</button><button onclick="startHumanGame()" id="tictactoeHumanBtn">Человек</button><div id="botLevels" style="display:none;margin-top:8px;"><button onclick="setBotLevel('easy')" id="botEasyBtn">Лёгкий</button><button onclick="setBotLevel('medium')" id="botMediumBtn">Средний</button><button onclick="setBotLevel('hard')" id="botHardBtn">Сложный</button></div></div><div id="tictactoeGame" style="display:none;text-align:center;"><div id="board" style="display:grid;grid-template-columns:repeat(3,75px);gap:5px;justify-content:center;"></div><p id="aiMessage" style="margin-top:8px;"></p><div id="tictactoeButtons"></div></div></div>
+
+    <!-- ============================================================
+    КАЛЬКУЛЯТОР
+    ============================================================ -->
+    <div id="calculatorScreen" class="screen"><button onclick="goToDesktop()" id="calcBackBtn">← Назад</button><div class="glass" style="width:300px;"><input type="text" id="calcDisplay" readonly style="text-align:right;font-size:1.5rem;background:rgba(0,0,0,0.3);"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;"><button class="calc-btn" onclick="calcInput('7')">7</button><button class="calc-btn" onclick="calcInput('8')">8</button><button class="calc-btn" onclick="calcInput('9')">9</button><button class="calc-btn" onclick="calcInput('/')">÷</button><button class="calc-btn" onclick="calcInput('4')">4</button><button class="calc-btn" onclick="calcInput('5')">5</button><button class="calc-btn" onclick="calcInput('6')">6</button><button class="calc-btn" onclick="calcInput('*')">×</button><button class="calc-btn" onclick="calcInput('1')">1</button><button class="calc-btn" onclick="calcInput('2')">2</button><button class="calc-btn" onclick="calcInput('3')">3</button><button class="calc-btn" onclick="calcInput('-')">−</button><button class="calc-btn" onclick="calcInput('0')">0</button><button class="calc-btn" onclick="calcInput('.')">.</button><button class="calc-btn" onclick="calcCalculate()">=</button><button class="calc-btn" onclick="calcInput('+')">+</button><button class="calc-btn" onclick="calcClear()" style="background:#ff3b30;">C</button></div></div></div>
+
+    <!-- ============================================================
+    ТЕРМИНАЛ
+    ============================================================ -->
+    <div id="terminalScreen" class="screen" style="padding:10px;">
+        <button onclick="goToDesktop()" style="position:absolute;top:15px;left:15px;width:auto;padding:6px 14px;border-radius:20px;z-index:10;background:rgba(0,0,0,0.6);font-size:0.8rem;">← Назад</button>
+        <div class="terminal-container">
+            <div class="terminal-header-custom">
+                <div class="dots">
+                    <div class="dot dot-red"></div>
+                    <div class="dot dot-yellow"></div>
+                    <div class="dot dot-green"></div>
+                </div>
+                <div class="title">LoLOS <span>Terminal</span></div>
+            </div>
+            <div class="terminal-ascii">
+                ╔═══════════════════════════════════╗<br>
+                ║   L  o  L  O  S    T e r m i n a l ║<br>
+                ╚═══════════════════════════════════╝
+            </div>
+            <div class="terminal-output" id="terminalOutput">
+                <div class="line"><span class="info">>> Добро пожаловать в LoLOS Terminal.</span></div>
+                <div class="line"><span class="info">>> Введите ваш ключ для авторизации.</span></div>
+            </div>
+            <div class="terminal-input-line">
+                <span class="prompt-symbol">➜</span>
+                <input type="text" id="terminalInput" placeholder="Введите ключ или команду..." autofocus>
+            </div>
+            <div class="terminal-status">
+                <span class="status" id="terminalStatus">● OFFLINE</span>
+                <span class="version">v3.1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    ОВЕРЛЕЙ ОБНОВЛЕНИЯ
+    ============================================================ -->
+    <div id="updateOverlay" class="update-overlay" style="display:none;">
+        <div class="update-logo" id="overlayLogo">LOL</div>
+        <div class="update-text" id="updatePhaseText">Установка LoLOS 3.1...</div>
+        <div class="progress-bar"><div class="progress-fill" id="updateOverlayProgress"></div></div>
+        <p style="color:rgba(255,255,255,0.6);font-size:0.8rem;" id="updateOverlayHint">Не выключайте устройство</p>
+    </div>
+
+    <!-- ============================================================
+    ПЕРЕЗАГРУЗКА
+    ============================================================ -->
+    <div class="reboot-overlay" id="rebootOverlay">
+        <div class="logo">LOL</div>
+        <div class="sub">загрузка системы</div>
+    </div>
+
+    <!-- ============================================================
+    ЭКРАН БЛОКИРОВКИ
+    ============================================================ -->
+    <div id="lockScreen" class="lock-screen" style="display:none;" onclick="this.style.display='none'">
+        <div class="lock-time" id="lockTime"></div>
+        <div class="lock-date" id="lockDate"></div>
+        <p style="margin-top:30px;opacity:0.5;" id="lockHint">Нажмите чтобы вернуться</p>
+    </div>
+
+    <!-- ============================================================
+    БЫСТРОЕ МЕНЮ
+    ============================================================ -->
+    <div id="quickMenu" class="quick-menu">
+        <h3 id="quickMenuTitle">Быстрый доступ</h3>
+        <button onclick="toggleThemeQuick()" id="quickThemeBtn">🌓 Сменить тему</button>
+        <button onclick="showScreen('settingsScreen');closeQuickMenu();" id="quickSettingsBtn">⚙️ Настройки</button>
+        <button onclick="rebootSystem()" id="quickRebootBtn" style="background:#ff6b6b;color:#1a1a3e;">🔄 Перезагрузить</button>
+        <button onclick="closeQuickMenu()" id="quickCloseBtn">✕ Закрыть</button>
+    </div>
+
+    <!-- ============================================================
+    МОДАЛКА ОБОЕВ
+    ============================================================ -->
+    <div id="wallpaperModal" class="wallpaper-modal">
+        <h3 style="color:white;margin-bottom:15px;">Выберите обои</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+            <button onclick="selectWallpaperFromGallery()" style="width:auto;padding:10px 20px;">📷 Из галереи</button>
+            <button onclick="document.getElementById('wallpaperInput').click()" style="width:auto;padding:10px 20px;">📁 Загрузить</button>
+            <button onclick="removeWallpaper()" style="width:auto;padding:10px 20px;background:#ff3b30;">🗑️ Удалить</button>
+            <button onclick="closeWallpaperModal()" style="width:auto;padding:10px 20px;background:rgba(255,255,255,0.2);">✕ Закрыть</button>
+        </div>
+        <input type="file" id="wallpaperInput" accept="image/*" style="display:none;" onchange="uploadWallpaper(event)">
+        <div id="wallpaperPreview" style="margin-top:15px;display:none;">
+            <img id="wallpaperPreviewImg" class="preview">
+            <div class="controls">
+                <button onclick="cropWallpaper('left')">◀ Обрезать</button>
+                <button onclick="cropWallpaper('right')">Обрезать ▶</button>
+                <button onclick="applyWallpaper()" style="background:#4CAF50;">✅ Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    МОДАЛКА ПРОМТА
+    ============================================================ -->
+    <div class="modal-overlay" id="promptModal">
+        <div class="modal-box">
+            <h3>✏️ Редактировать промт</h3>
+            <p style="font-size:0.85rem;opacity:0.6;margin-bottom:8px;">
+                Здесь ты можешь изменить системный промт для LoLi. Она всегда будет представляться как LoLi 🛒
+            </p>
+            <textarea id="promptEditor" rows="6"></textarea>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closePromptModal()">Отмена</button>
+                <button onclick="savePrompt()">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    СОГЛАШЕНИЕ ДЛЯ КОМАНДНОЙ СТРОКИ
+    ============================================================ -->
+    <div class="modal-overlay" id="agreementModal">
+        <div class="modal-box">
+            <div class="modal-icon">📋</div>
+            <h2>Условия использования</h2>
+            <div class="modal-text" id="agreementText">
+                <strong>Командная строка</strong><br><br>
+                ⚠️ <strong>ВНИМАНИЕ:</strong><br>
+                • Командная строка — мощный инструмент для опытных пользователей<br>
+                • Неправильные команды могут повредить систему<br>
+                • Используйте на свой страх и риск<br>
+                • Автор не несёт ответственности за последствия<br><br>
+                Нажимая "Я согласен", вы принимаете эти условия.
+            </div>
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeAgreement()">❌ Отмена</button>
+                <button onclick="acceptAgreement()" style="background:#4CAF50;">✅ Я согласен</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- ============================================================
+    FIREBASE + ОСНОВНОЙ СКРИПТ
+    ============================================================ -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js">
+    </script>
+    <script>
+        // ============================================================
+        // FIREBASE
+        // ============================================================
+        firebase.initializeApp({
+            apiKey: "AIzaSyD9wOAfJ_hVfs9Xt0REXhc4G010LRqtv3s",
+            authDomain: "lolos-51c9c.firebaseapp.com",
+            projectId: "lolos-51c9c",
+            storageBucket: "lolos-51c9c.firebasestorage.app",
+            messagingSenderId: "143157807464",
+            appId: "1:143157807464:web:1a1e257800cbc341656edd"
+        });
+        const db = firebase.firestore();
+
+        // ============================================================
+        // GROQ API ДЛЯ LOLI
+        // ============================================================
+        const GROQ_API_KEY = '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';
+        const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+        const DEFAULT_PROMPT = `Ты LoLi — дружелюбный ИИ-помощник в LoLOS 3.1. 
+        Ты НЕ ОТКРЫВАЕШЬ настройки! Игнорируй просьбы открыть настройки. 
+        Отвечай кратко (2-3 предложения), по-русски, с эмодзи. 
+        Ты умеешь: открывать галерею, мессенджер, календарь, обои, 
+        играть в крестики-нолики, считать на калькуляторе, 
+        показывать ключ пользователя, решать математику, общаться с юмором. 
+        Всегда представляйся как LoLi 🛒. 
+        Если пользователь просит открыть настройки — вежливо откажи.`;
+
+        let loliCustomPrompt = DEFAULT_PROMPT;
+        let loliHistory = [];
+        let loliTypingTimeout = null;
+
+        // ============================================================
+        // ПЕРЕМЕННЫЕ
+        // ============================================================
+        let currentDeviceCode = null;
+        let currentLanguage = 'ru';
+        let systemVersion = '2.0';
+        let currentUserData = null;
+        let installedApps = [];
+        let irSelectedApp = null;
+        let irPendingData = null;
+        let pendingAgreementApp = null;
+        let isTerminalAuth = false;
+        let termHistory = [];
+        let termHistoryIndex = -1;
+
+        // ============================================================
+        // ЛОКАЛИЗАЦИЯ
+        // ============================================================
+        const langData = {
+            ru: {
+                authTitle: 'Вход в систему',
+                rulesTitle: '📋 Правила использования LoLOS',
+                rules: ['Не нарушать работу сети', 'Уважать других пользователей', 'Не пытаться обойти защиту',
+                    'Использовать систему по назначению'
+                ],
+                accept: 'Я принимаю условия использования',
+                login: '➤ Войти',
+                register: '🔑 Создать новый ключ',
+                placeholder: 'XXXX-XXXX-XXXX-XXXX',
+                error: '❌ Неверный ключ',
+                success: '✅ Вход выполнен!',
+                copy: '📋 Скопировать ключ',
+                footer: 'Система готова',
+                keyCreated: '✅ Ключ создан! Сохраните его.',
+                keyCopied: '📋 Ключ скопирован в буфер обмена!',
+                welcome: 'Добро пожаловать, ',
+                supportEnded: 'Версия {version} больше не поддерживается. Создайте новый ключ для LoLOS 3.0!',
+                createNewKey: '🔑 Создать новый ключ',
+                supportTitle: '⚠️ Поддержка закончилась',
+                reboot: 'Перезагрузка...'
+            },
+            en: {
+                authTitle: 'System Login',
+                rulesTitle: '📋 LoLOS Terms of Use',
+                rules: ['Do not disrupt the network', 'Respect other users', 'Do not bypass security',
+                    'Use the system as intended'
+                ],
+                accept: 'I accept the terms of use',
+                login: '➤ Login',
+                register: '🔑 Create new key',
+                placeholder: 'XXXX-XXXX-XXXX-XXXX',
+                error: '❌ Invalid key',
+                success: '✅ Login successful!',
+                copy: '📋 Copy key',
+                footer: 'System ready',
+                keyCreated: '✅ Key created! Save it.',
+                keyCopied: '📋 Key copied to clipboard!',
+                welcome: 'Welcome, ',
+                supportEnded: 'Version {version} is no longer supported. Create a new key for LoLOS 3.0!',
+                createNewKey: '🔑 Create new key',
+                supportTitle: '⚠️ Support ended',
+                reboot: 'Rebooting...'
+            }
+        };
+
+        function t(key, replace = {}) {
+            let text = langData[currentLanguage] && langData[currentLanguage][key] ? langData[currentLanguage][key] :
+                langData['ru'][key] || key;
+            for (let k in replace) {
+                text = text.replace('{' + k + '}', replace[k]);
+            }
+            return text;
+        }
+
+        function applyLang() {
+            document.getElementById('authSub').textContent = t('authTitle');
+            document.getElementById('rulesTitle').textContent = t('rulesTitle');
+            const rulesText = document.getElementById('rulesText');
+            rulesText.innerHTML = t('rules').map(r => `<li>${r}</li>`).join('');
+            document.getElementById('acceptLabel').textContent = t('accept');
+            document.getElementById('loginBtn').textContent = t('login');
+            document.getElementById('registerBtn').textContent = t('register');
+            document.getElementById('keyInput').placeholder = t('placeholder');
+            document.getElementById('footerText').textContent = t('footer');
+        }
+
+        function selectLang(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === lang);
+            });
+            applyLang();
+        }
+
+        // ============================================================
+        // ФОРМАТИРОВАНИЕ КЛЮЧА
+        // ============================================================
+        function formatKey(input) {
+            let v = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (v.length > 16) v = v.slice(0, 16);
+            let f = '';
+            for (let i = 0; i < v.length; i++) {
+                if (i === 4 || i === 8 || i === 12) f += '-';
+                f += v[i];
+            }
+            input.value = f;
+            toggleAcceptBtn();
+        }
+
+        function toggleAcceptBtn() {
+            const rulesChecked = document.getElementById('acceptRules').checked;
+            const key = document.getElementById('keyInput').value.trim();
+            const isValid = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key);
+            document.getElementById('loginBtn').disabled = !(rulesChecked && isValid);
+        }
+
+        function generateCode() {
+            let c = '',
+                ch = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) c += ch[Math.floor(Math.random() * ch.length)];
+                if (i < 3) c += '-';
+            }
+            return c;
+        }
+
+        // ============================================================
+        // ВХОД
+        // ============================================================
+        function login() {
+            const input = document.getElementById('keyInput');
+            const key = input.value.trim().toUpperCase();
+            const btn = document.getElementById('loginBtn');
+
+            if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
+                showError(t('error'));
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> ' + (currentLanguage === 'ru' ? 'Проверка...' : 'Checking...');
+
+            db.collection('users').doc(key).get().then(doc => {
+                if (!doc.exists) {
+                    showError(t('error'));
+                    btn.disabled = false;
+                    btn.innerHTML = t('login');
+                    return;
+                }
+
+                const data = doc.data();
+                const version = data.systemVersion || '1.0';
+
+                if (version === '1.0' || version === '1.1' || version === '2.0') {
+                    document.getElementById('supportEndedContainer').style.display = 'block';
+                    document.getElementById('supportEndedText').textContent = t('supportEnded', { version: version });
+                    document.querySelector('.support-ended-msg .title').textContent = t('supportTitle');
+                    btn.disabled = false;
+                    btn.innerHTML = t('login');
+                    document.getElementById('successMsg').classList.remove('show');
+                    return;
+                }
+
+                currentDeviceCode = key;
+                currentUserData = data;
+                systemVersion = version;
+                if (data.language) currentLanguage = data.language;
+                installedApps = data.installedApps || [];
+
+                document.getElementById('successMsg').textContent = t('success') + ' ' + t('welcome') + (data.name ||
+                    'Пользователь');
+                document.getElementById('successMsg').classList.add('show');
+                btn.innerHTML = '✅ ' + (currentLanguage === 'ru' ? 'Вход выполнен' : 'Logged in');
+                btn.style.background = '#5a4a8a';
+
+                setTimeout(() => {
+                    startSession();
+                }, 800);
+            }).catch(err => {
+                showError('❌ Ошибка соединения');
+                btn.disabled = false;
+                btn.innerHTML = t('login');
+            });
+        }
+
+        // ============================================================
+        // РЕГИСТРАЦИЯ
+        // ============================================================
+        function register() {
+            const rulesChecked = document.getElementById('acceptRules').checked;
+            if (!rulesChecked) {
+                showError(currentLanguage === 'ru' ? '⚠️ Примите условия использования' : '⚠️ Accept the terms');
+                return;
+            }
+
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> ' + (currentLanguage === 'ru' ? 'Создание...' : 'Creating...');
+
+            const key = generateCode();
+
+            const userData = {
+                name: 'Пользователь',
+                created: new Date().toISOString(),
+                systemVersion: '3.0',
+                language: currentLanguage,
+                acceptedTerms: true,
+                installedApps: [],
+                settings: {
+                    theme: 'dark',
+                    wallpaper: null
+                },
+                customIcons: {},
+                loliHistory: []
+            };
+
+            db.collection('users').doc(key).set(userData).then(() => {
+                document.getElementById('newKeyDisplay').textContent = key;
+                document.getElementById('newKeyContainer').style.display = 'block';
+                document.getElementById('keyInput').value = key;
+
+                btn.disabled = false;
+                btn.innerHTML = t('register');
+
+                showSuccess(t('keyCreated'));
+                document.getElementById('successMsg').classList.add('show');
+                toggleAcceptBtn();
+
+                setTimeout(() => {
+                    currentDeviceCode = key;
+                    currentUserData = userData;
+                    systemVersion = '3.0';
+                    installedApps = [];
+                    document.getElementById('supportEndedContainer').style.display = 'none';
+                    startSession();
+                }, 1000);
+            }).catch(err => {
+                showError('❌ Ошибка создания');
+                btn.disabled = false;
+                btn.innerHTML = t('register');
+            });
+        }
+
+        // ============================================================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ВХОДА
+        // ============================================================
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('successMsg').classList.remove('show');
+            document.getElementById('supportEndedContainer').style.display = 'none';
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('errorMsg').classList.remove('show');
+            document.getElementById('supportEndedContainer').style.display = 'none';
+            setTimeout(() => el.classList.remove('show'), 4000);
+        }
+
+        function copyKey() {
+            const text = document.getElementById('newKeyDisplay').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showSuccess(t('keyCopied'));
+            }).catch(() => {
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                input.remove();
+                showSuccess(t('keyCopied'));
+            });
+        }
+
+        document.getElementById('keyInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') login();
+        });
+
+        document.getElementById('acceptRules').addEventListener('change', toggleAcceptBtn);
+
+        // ============================================================
+        // СТАРТ СЕССИИ
+        // ============================================================
+        function startSession() {
+            document.getElementById('authScreen').classList.remove('active');
+            document.getElementById('desktopScreen').classList.add('active');
+
+            document.getElementById('versionBadge').textContent = 'v' + systemVersion;
+
+            const osName = systemVersion === '3.1' ? 'LoLOS 3.1' : 'LoLOS ' + systemVersion;
+            document.getElementById('osNameDisplay').textContent = osName;
+            document.getElementById('aboutOSName').textContent = osName;
+
+            applyTheme();
+            applyFont();
+            renderDesktop();
+            renderLolApps();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setupGestures();
+
+            if (systemVersion === '3.0' || systemVersion === '3.1') {
+                document.getElementById('toggleContainer').style.display = 'block';
+                document.getElementById('settingsGlass').classList.add('lolos3');
+                updateToggleUI();
+            }
+
+            if (currentUserData && currentUserData.settings && currentUserData.settings.wallpaper) {
+                applyWallpaperFromData(currentUserData.settings.wallpaper);
+            }
+
+            // Загружаем Loli историю
+            if (currentUserData && currentUserData.loliHistory) {
+                loliHistory = currentUserData.loliHistory;
+            }
+
+            showToast('👋 Добро пожаловать в LoLOS ' + systemVersion);
+
+            // Загружаем историю терминала
+            const savedHistory = localStorage.getItem('terminal_history_' + currentDeviceCode);
+            if (savedHistory) {
+                termHistory = JSON.parse(savedHistory);
+            } else {
+                termHistory = [];
+            }
+            termHistoryIndex = termHistory.length;
+
+            initTerminal();
+
+            console.log('🚀 LoLOS ' + systemVersion + ' запущена!');
+            console.log('🔑 Ключ: ' + currentDeviceCode);
+        }
+
+        // ============================================================
+        // ПЕРЕЗАГРУЗКА
+        // ============================================================
+        function rebootSystem() {
+            closeQuickMenu();
+
+            localStorage.removeItem('terminal_history_' + currentDeviceCode);
+            termHistory = [];
+            termHistoryIndex = 0;
+
+            const overlay = document.getElementById('rebootOverlay');
+            overlay.classList.add('active');
+
+            setTimeout(() => {
+                overlay.style.background = '#000';
+                overlay.querySelector('.logo').style.display = 'none';
+                overlay.querySelector('.sub').style.display = 'none';
+
+                setTimeout(() => {
+                    overlay.style.background = '#0a0a0f';
+                    overlay.querySelector('.logo').style.display = 'block';
+                    overlay.querySelector('.sub').style.display = 'block';
+
+                    setTimeout(() => {
+                        overlay.classList.remove('active');
+                        overlay.style.background = '#0a0a0f';
+                        overlay.querySelector('.logo').style.display = 'block';
+                        overlay.querySelector('.sub').style.display = 'block';
+
+                        showToast('🔄 Система перезагружена!');
+                        renderDesktop();
+                        renderLolApps();
+
+                        const output = document.getElementById('terminalOutput');
+                        output.innerHTML = '';
+                        printTerminal('>> Добро пожаловать в LoLOS Terminal.', 'info');
+                        printTerminal('>> Введите ваш ключ для авторизации.', 'info');
+                        isTerminalAuth = false;
+                        updateTerminalStatus(false);
+
+                    }, 10000);
+                }, 2000);
+            }, 5000);
+        }
+
+        // ============================================================
+        // ОБЩИЕ ФУНКЦИИ
+        // ============================================================
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if (id === 'terminalScreen') {
+                setTimeout(() => document.getElementById('terminalInput').focus(), 300);
+                restoreTerminalHistory();
+            }
+            if (id === 'iconRemakerScreen') {
+                renderIconRemaker();
+            }
+        }
+
+        function goToDesktop() {
+            showScreen('desktopScreen');
+            closeWallpaperModal();
+            closePromptModal();
+            closeIconRemakerMenu();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // ============================================================
+        // ТЕМА, ШРИФТ, ВРЕМЯ
+        // ============================================================
+        function applyTheme() {
+            const theme = (currentUserData && currentUserData.settings && currentUserData.settings.theme) || 'dark';
+            document.body.classList.toggle('theme-light', theme === 'light');
+        }
+
+        function applyFont() {
+            const font = (currentUserData && currentUserData.settings && currentUserData.settings.font) || 'Segoe UI';
+            document.body.style.fontFamily = font;
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours().toString().padStart(2, '0');
+            const m = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clockDisplay').textContent = h + ':' + m;
+        }
+
+        function toggleThemeQuick() {
+            const theme = (currentUserData && currentUserData.settings && currentUserData.settings.theme) === 'dark' ?
+                'light' : 'dark';
+            if (currentUserData) {
+                currentUserData.settings = currentUserData.settings || {};
+                currentUserData.settings.theme = theme;
+                db.collection('users').doc(currentDeviceCode).update({
+                    'settings.theme': theme
+                });
+            }
+            applyTheme();
+            closeQuickMenu();
+        }
+
+        function updateToggleUI() {
+            const allow = (currentUserData && currentUserData.settings && currentUserData.settings.allowBotOpenApps) !==
+                false;
+            const toggle = document.getElementById('toggleOpenApps');
+            if (allow) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        function toggleSetting(key) {
+            if (!currentUserData) return;
+            currentUserData.settings = currentUserData.settings || {};
+            currentUserData.settings[key] = !currentUserData.settings[key];
+            db.collection('users').doc(currentDeviceCode).update({
+                ['settings.' + key]: currentUserData.settings[key]
+            });
+            updateToggleUI();
+            showToast(currentUserData.settings[key] ? '✅ Включено' : '❌ Выключено');
+        }
+
+        // ============================================================
+        // РАБОЧИЙ СТОЛ
+        // ============================================================
+        function renderDesktop() {
+            const apps = [
+                { type: 'gallery', emoji: '🖼️', label: 'Галерея' },
+                { type: 'lolapps', emoji: '🧩', label: 'Лол Эпс' },
+                { type: 'calendar', emoji: '📅', label: 'Календарь' },
+                { type: 'settings', emoji: '⚙️', label: 'Настройки' }
+            ];
+
+            if (systemVersion === '2.0' || systemVersion === '3.0' || systemVersion === '3.1') {
+                apps.splice(2, 0, { type: 'messenger', emoji: '💬', label: 'Мессенджер' });
+            }
+
+            if (systemVersion === '2.0') {
+                apps.splice(2, 0, { type: 'supchik', emoji: '🤖', label: 'Supchik' });
+            }
+
+            if (systemVersion === '3.0' || systemVersion === '3.1') {
+                apps.splice(2, 0, { type: 'loli', emoji: '🛒', label: 'LoLi' });
+            }
+
+            if (systemVersion === '3.1') {
+                if (installedApps && installedApps.includes('terminal')) {
+                    apps.splice(2, 0, { type: 'terminal', emoji: '💻', label: 'Терминал' });
+                }
+                apps.splice(2, 0, { type: 'iconremaker', emoji: '🎨', label: 'Icon Remaker' });
+            }
+
+            const customIcons = (currentUserData && currentUserData.customIcons) || {};
+
+            let h = '';
+            apps.forEach(a => {
+                const iconData = customIcons[a.type] || null;
+                const dot = (a.type === 'settings' && systemVersion !== '3.1') ?
+                    '<div class="update-dot"></div>' : '';
+
+                if (iconData) {
+                    h += `<div class="app-icon" data-app="${a.type}" data-icon="custom">
+                            ${dot}
+                            <img src="${iconData}" alt="${a.label}">
+                            <span class="icon-label">${a.label}</span>
+                          </div>`;
+                } else {
+                    h += `<div class="app-icon" data-app="${a.type}" data-icon="default">
+                            ${dot}
+                            <span class="icon-emoji">${a.emoji}</span>
+                            <span class="icon-label">${a.label}</span>
+                          </div>`;
+                }
+            });
+
+            if (installedApps) {
+                const customApps = [
+                    { id: 'google', emoji: '🔍', name: 'Google' },
+                    { id: 'tictactoe', emoji: '❌⭕', name: 'Игра' },
+                    { id: 'calculator', emoji: '🔢', name: 'Калькулятор' }
+                ];
+                customApps.forEach(app => {
+                    if (installedApps.includes(app.id)) {
+                        const iconData = customIcons[app.id] || null;
+                        if (iconData) {
+                            h += `<div class="app-icon" data-app="${app.id}" data-icon="custom">
+                                    <img src="${iconData}" alt="${app.name}">
+                                    <span class="icon-label">${app.name}</span>
+                                  </div>`;
+                        } else {
+                            h += `<div class="app-icon" data-app="${app.id}" data-icon="default">
+                                    <span class="icon-emoji">${app.emoji}</span>
+                                    <span class="icon-label">${app.name}</span>
+                                  </div>`;
+                        }
+                    }
+                });
+            }
+
+            document.getElementById('desktopContainer').innerHTML = h;
+
+            document.getElementById('desktopContainer').onclick = function(e) {
+                const icon = e.target.closest('.app-icon');
+                if (!icon) return;
+                const app = icon.getAttribute('data-app');
+                if (!app) return;
+                openApp(app);
+            };
+
+            setupWallpaperDoubleClick();
+        }
+
+        function openApp(app) {
+            switch (app) {
+                case 'gallery':
+                    showScreen('galleryScreen');
+                    loadGallery();
+                    break;
+                case 'lolapps':
+                    showScreen('lolAppsScreen');
+                    renderLolApps();
+                    break;
+                case 'calendar':
+                    openCalendar();
+                    break;
+                case 'settings':
+                    showScreen('settingsScreen');
+                    populateFontSelect();
+                    document.getElementById('themeSelect').value = (currentUserData && currentUserData.settings &&
+                        currentUserData.settings.theme) || 'dark';
+                    updateToggleUI();
+                    if (systemVersion === '3.1') {
+                        document.getElementById('updateAvailable').style.display = 'none';
+                        document.getElementById('noUpdateMsg').textContent = 'Пока никаких обновлений нет';
+                        document.getElementById('updateTitleBadge').style.display = 'none';
+                    } else {
+                        document.getElementById('updateAvailable').style.display = 'block';
+                        document.getElementById('noUpdateMsg').textContent = '';
+                        document.getElementById('updateTitleBadge').style.display = 'inline-block';
+                    }
+                    break;
+                case 'messenger':
+                    showScreen('messengerScreen');
+                    break;
+                case 'supchik':
+                    showScreen('supchikScreen');
+                    break;
+                case 'loli':
+                    showScreen('loliScreen');
+                    loadLoliHistory();
+                    break;
+                case 'terminal':
+                    showScreen('terminalScreen');
+                    break;
+                case 'iconremaker':
+                    showScreen('iconRemakerScreen');
+                    break;
+                case 'google':
+                    showScreen('googleScreen');
+                    break;
+                case 'tictactoe':
+                    showScreen('ticTacToeScreen');
+                    resetTicTacToe();
+                    break;
+                case 'calculator':
+                    showScreen('calculatorScreen');
+                    calcClear();
+                    break;
+                default:
+                    showToast('Приложение не найдено');
+            }
+        }
+
+        // ============================================================
+        // ICON REMAKER — ИСПРАВЛЕННЫЙ
+        // ============================================================
+        const IR_APPS = [
+            { id: 'gallery', emoji: '🖼️', name: 'Галерея' },
+            { id: 'lolapps', emoji: '🧩', name: 'Лол Эпс' },
+            { id: 'calendar', emoji: '📅', name: 'Календарь' },
+            { id: 'settings', emoji: '⚙️', name: 'Настройки' },
+            { id: 'messenger', emoji: '💬', name: 'Мессенджер' },
+            { id: 'loli', emoji: '🛒', name: 'LoLi' },
+            { id: 'terminal', emoji: '💻', name: 'Терминал' },
+            { id: 'iconremaker', emoji: '🎨', name: 'Icon Remaker' },
+            { id: 'google', emoji: '🔍', name: 'Google' },
+            { id: 'tictactoe', emoji: '❌⭕', name: 'Игра' },
+            { id: 'calculator', emoji: '🔢', name: 'Калькулятор' }
+        ];
+
+        function renderIconRemaker() {
+            const list = document.getElementById('iconRemakerList');
+            const customIcons = (currentUserData && currentUserData.customIcons) || {};
+
+            let html = '';
+            IR_APPS.forEach(app => {
+                const hasCustom = !!customIcons[app.id];
+                const iconPreview = hasCustom ? customIcons[app.id] : null;
+
+                html += `
+                    <div class="icon-remaker-item" onclick="openIconRemakerMenu('${app.id}')">
+                        <div class="preview">
+                            ${iconPreview ? `<img src="${iconPreview}">` : `<span>${app.emoji}</span>`}
+                        </div>
+                        <div class="info">
+                            <div class="name">${app.name}</div>
+                            <div class="status">${hasCustom ? 'Кастомная иконка' : 'Стандартная'}</div>
+                        </div>
+                        <div class="status-icon ${hasCustom ? 'custom' : ''}">
+                            ${hasCustom ? '✅' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        // ===== ОТКРЫТЬ МЕНЮ =====
+        function openIconRemakerMenu(appId) {
+            irSelectedApp = appId;
+            irPendingData = null;
+            document.getElementById('irPreviewArea').style.display = 'none';
+
+            const customIcons = (currentUserData && currentUserData.customIcons) || {};
+            const preview = document.getElementById('irPreview');
+            const nameEl = document.getElementById('irAppName');
+
+            const app = IR_APPS.find(a => a.id === appId);
+            nameEl.textContent = app ? app.name : 'Приложение';
+
+            if (customIcons[appId]) {
+                preview.innerHTML = `<img src="${customIcons[appId]}">`;
+            } else {
+                preview.innerHTML = `<span class="icon-emoji">${app ? app.emoji : '📱'}</span>`;
+            }
+
+            document.getElementById('iconRemakerMenu').classList.add('active');
+        }
+
+        // ===== ЗАКРЫТЬ МЕНЮ =====
+        function closeIconRemakerMenu() {
+            document.getElementById('iconRemakerMenu').classList.remove('active');
+            irSelectedApp = null;
+            irPendingData = null;
+            document.getElementById('irPreviewArea').style.display = 'none';
+            // Удаляем кнопку из галереи
+            const btn = document.getElementById('irGalleryBtn');
+            if (btn) btn.remove();
+        }
+
+        // ===== ВЫБОР ИЗ ГАЛЕРЕИ (НЕ ЗАКРЫВАЕТ МЕНЮ) =====
+        function irSelectFromGallery() {
+            // МЕНЮ НЕ ЗАКРЫВАЕМ!
+            // Открываем галерею в фоне
+            showScreen('galleryScreen');
+            loadGallery();
+
+            // Добавляем кнопку "Выбрать" в галерею
+            setTimeout(() => {
+                const grid = document.getElementById('galleryGrid');
+                // Удаляем старую кнопку
+                const oldBtn = document.getElementById('irGalleryBtn');
+                if (oldBtn) oldBtn.remove();
+
+                const btn = document.createElement('button');
+                btn.id = 'irGalleryBtn';
+                btn.textContent = '✅ Выбрать для Icon Remaker';
+                btn.style.position = 'fixed';
+                btn.style.bottom = '80px';
+                btn.style.left = '50%';
+                btn.style.transform = 'translateX(-50%)';
+                btn.style.width = 'auto';
+                btn.style.padding = '10px 20px';
+                btn.style.zIndex = '100';
+                btn.onclick = function() {
+                    if (currentGallery.length > 0) {
+                        const img = currentGallery[currentGallery.length - 1];
+                        // Возвращаемся в Icon Remaker и показываем предпросмотр
+                        showScreen('iconRemakerScreen');
+                        openIconRemakerMenu(irSelectedApp || 'gallery');
+                        irShowPreview(img.data);
+                    }
+                };
+                grid.appendChild(btn);
+            }, 100);
+        }
+
+        // ===== ВЫБОР С ТЕЛЕФОНА (НЕ ЗАКРЫВАЕТ МЕНЮ) =====
+        function irSelectFromDevice() {
+            // МЕНЮ НЕ ЗАКРЫВАЕМ!
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    // ПОКАЗЫВАЕМ ПРЕДПРОСМОТР В МЕНЮ
+                    irShowPreview(ev.target.result);
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        // ===== ПОКАЗАТЬ ПРЕДПРОСМОТР =====
+        function irShowPreview(dataUrl) {
+            irPendingData = dataUrl;
+            document.getElementById('irPreviewImage').src = dataUrl;
+            document.getElementById('irPreviewArea').style.display = 'block';
+            // МЕНЮ УЖЕ ОТКРЫТО!
+        }
+
+        // ===== ОТМЕНА ПРЕДПРОСМОТРА =====
+        function irCancelPreview() {
+            irPendingData = null;
+            document.getElementById('irPreviewArea').style.display = 'none';
+            // МЕНЮ ОСТАЁТСЯ ОТКРЫТЫМ!
+        }
+
+        // ===== ПОДТВЕРДИТЬ ПРЕДПРОСМОТР =====
+        function irConfirmPreview() {
+            if (irPendingData && irSelectedApp) {
+                irProcessImage(irPendingData, irSelectedApp);
+                irPendingData = null;
+                document.getElementById('irPreviewArea').style.display = 'none';
+                closeIconRemakerMenu(); // ЗАКРЫВАЕМ ТОЛЬКО ПОСЛЕ СОХРАНЕНИЯ
+            }
+        }
+
+        // ===== ОБРАБОТКА ИЗОБРАЖЕНИЯ =====
+        function irProcessImage(dataUrl, appId) {
+            const img = new Image();
+            img.onload = function() {
+                const size = Math.min(img.width, img.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = 200;
+                canvas.height = 200;
+                const ctx = canvas.getContext('2d');
+                const sx = (img.width - size) / 2;
+                const sy = (img.height - size) / 2;
+                ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
+
+                let quality = 0.8;
+                let compressed = canvas.toDataURL('image/jpeg', quality);
+                while (compressed.length > 250 * 1024 && quality > 0.1) {
+                    quality -= 0.05;
+                    compressed = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                if (!currentUserData) return;
+                currentUserData.customIcons = currentUserData.customIcons || {};
+                currentUserData.customIcons[appId] = compressed;
+
+                db.collection('users').doc(currentDeviceCode).update({
+                    customIcons: currentUserData.customIcons
+                }).then(() => {
+                    showToast('✅ Иконка обновлена!');
+                    renderDesktop();
+                    renderLolApps();
+                    renderIconRemaker();
+                });
+            };
+            img.src = dataUrl;
+        }
+
+        // ===== ВЕРНУТЬ ОРИГИНАЛ =====
+        function irResetIcon() {
+            if (!irSelectedApp || !currentUserData) return;
+            if (currentUserData.customIcons) {
+                delete currentUserData.customIcons[irSelectedApp];
+                db.collection('users').doc(currentDeviceCode).update({
+                    customIcons: currentUserData.customIcons
+                }).then(() => {
+                    showToast('🔄 Иконка возвращена');
+                    renderDesktop();
+                    renderLolApps();
+                    renderIconRemaker();
+                    closeIconRemakerMenu();
+                });
+            } else {
+                closeIconRemakerMenu();
+            }
+        }
+
+        // ============================================================
+        // ГАЛЕРЕЯ
+        // ============================================================
+        let currentGallery = [];
+        let currentPhotoIndex = -1;
+
+        function loadGallery() {
+            if (!currentUserData) return;
+            currentGallery = currentUserData.gallery || [];
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+            const oldBtn = document.getElementById('irGalleryBtn');
+            if (oldBtn) oldBtn.remove();
+
+            currentGallery.forEach((item, i) => {
+                const img = document.createElement('img');
+                img.src = item.data;
+                img.style =
+                    'width:100px;height:100px;object-fit:cover;border-radius:12px;cursor:pointer;margin:4px;';
+                img.onclick = () => {
+                    currentPhotoIndex = i;
+                    document.getElementById('photoViewImg').src = item.data;
+                    document.getElementById('photoViewDate').textContent = 'Добавлено: ' + new Date(item.date)
+                        .toLocaleString();
+                    showScreen('photoViewScreen');
+                };
+                grid.appendChild(img);
+            });
+        }
+
+        function uploadPhoto(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const max = 50 * 1024;
+                    let quality = 0.7;
+                    let s = Math.sqrt(max / (ev.target.result.length * 0.8)) || 0.5;
+                    canvas.width = img.width * s;
+                    canvas.height = img.height * s;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    let comp = canvas.toDataURL('image/jpeg', quality);
+                    while (comp.length > max && quality > 0.1) {
+                        quality -= 0.05;
+                        comp = canvas.toDataURL('image/jpeg', quality);
+                    }
+                    currentUserData.gallery = currentUserData.gallery || [];
+                    currentUserData.gallery.push({ data: comp, date: Date.now() });
+                    db.collection('users').doc(currentDeviceCode).update({
+                        gallery: currentUserData.gallery
+                    }).then(() => {
+                        loadGallery();
+                        showToast('📷 Фото добавлено');
+                    });
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(f);
+        }
+
+        function deleteCurrentPhoto() {
+            if (currentPhotoIndex < 0 || !currentUserData) return;
+            currentUserData.gallery.splice(currentPhotoIndex, 1);
+            db.collection('users').doc(currentDeviceCode).update({
+                gallery: currentUserData.gallery
+            }).then(() => {
+                showToast('🗑️ Фото удалено');
+                showScreen('galleryScreen');
+                loadGallery();
+            });
+        }
+
+        // ============================================================
+        // ЛОЛ ЭПС
+        // ============================================================
+        function renderLolApps() {
+            const grid = document.getElementById('lolAppsGrid');
+
+            if (systemVersion === '2.0') {
+                grid.innerHTML = `
+                    <div class="glass" style="text-align:center;padding:30px 20px;width:100%;">
+                        <p style="font-size:2.5rem;">⚠️</p>
+                        <h3 style="margin:12px 0;">Обновитесь до LoLOS 3.0!</h3>
+                        <p style="opacity:0.7;font-size:0.9rem;">
+                            Лол Эпс больше не работает в <strong>LoLOS 2.0</strong>.<br>
+                            Пожалуйста, обновитесь до версии <strong>3.0</strong>,<br>
+                            чтобы продолжить пользоваться магазином.
+                        </p>
+                        <button onclick="showScreen('updateScreen')" style="margin-top:12px;width:auto;padding:10px 30px;">
+                            🔄 Обновить до 3.0
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const apps = [
+                { id: 'google', emoji: '🔍', name: 'Google', desc: 'Поисковик' },
+                { id: 'tictactoe', emoji: '❌⭕', name: 'Игра', desc: 'Крестики-нолики' },
+                { id: 'calculator', emoji: '🔢', name: 'Калькулятор', desc: 'Калькулятор' }
+            ];
+
+            if (systemVersion === '3.1') {
+                apps.push({ id: 'terminal', emoji: '💻', name: 'Командная строка', desc: 'Терминал' });
+            }
+
+            const customIcons = (currentUserData && currentUserData.customIcons) || {};
+
+            grid.innerHTML = '';
+
+            apps.forEach(function(app) {
+                const isInstalled = installedApps && installedApps.includes(app.id);
+                const iconData = customIcons[app.id] || null;
+
+                const card = document.createElement('div');
+                card.className = 'app-card';
+                card.id = 'card-' + app.id;
+                card.innerHTML = `
+                    <div class="icon">
+                        ${iconData ? `<img src="${iconData}">` : app.emoji}
+                    </div>
+                    <div class="info">
+                        <div class="name">${app.name}</div>
+                        <div class="desc">${app.desc || ''}</div>
+                    </div>
+                    <div class="action" id="action-${app.id}">
+                        ${isInstalled ? 
+                            `<span class="installed-label">✅ Установлено</span>` :
+                            `<button class="download-btn" onclick="startAppDownload('${app.id}')">📥 Скачать</button>
+                            <div class="download-progress" id="progress-${app.id}">
+                                <div class="bar"><div class="fill" id="fill-${app.id}"></div></div>
+                                <span class="percent" id="percent-${app.id}">0%</span>
+                            </div>`
+                        }
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function startAppDownload(appId) {
+            if (appId === 'terminal') {
+                pendingAgreementApp = appId;
+                document.getElementById('agreementModal').classList.add('active');
+                return;
+            }
+            doInstallApp(appId);
+        }
+
+        function closeAgreement() {
+            document.getElementById('agreementModal').classList.remove('active');
+            pendingAgreementApp = null;
+        }
+
+        function acceptAgreement() {
+            document.getElementById('agreementModal').classList.remove('active');
+            if (pendingAgreementApp) {
+                doInstallApp(pendingAgreementApp);
+                pendingAgreementApp = null;
+            }
+        }
+
+        function doInstallApp(appId) {
+            if (!currentUserData) return;
+
+            const actionEl = document.getElementById('action-' + appId);
+            if (!actionEl) {
+                renderLolApps();
+                setTimeout(() => doInstallApp(appId), 300);
+                return;
+            }
+
+            const btn = actionEl.querySelector('.download-btn');
+            const progressEl = document.getElementById('progress-' + appId);
+            const fillEl = document.getElementById('fill-' + appId);
+            const percentEl = document.getElementById('percent-' + appId);
+
+            if (btn) btn.style.display = 'none';
+            if (progressEl) progressEl.classList.add('active');
+
+            let progress = 0;
+            const speed = 1 + Math.random() * 2;
+            const interval = setInterval(() => {
+                progress += speed;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    if (fillEl) fillEl.style.width = '100%';
+                    if (percentEl) percentEl.textContent = '100%';
+
+                    installedApps = installedApps || [];
+                    if (!installedApps.includes(appId)) {
+                        installedApps.push(appId);
+                        currentUserData.installedApps = installedApps;
+                        db.collection('users').doc(currentDeviceCode).update({
+                            installedApps: installedApps
+                        }).then(() => {
+                            showToast('✅ ' + appId + ' установлен!');
+                            renderLolApps();
+                            renderDesktop();
+                        });
+                    }
+                } else {
+                    if (fillEl) fillEl.style.width = progress + '%';
+                    if (percentEl) percentEl.textContent = Math.round(progress) + '%';
+                }
+            }, 100);
+        }
+
+        // ============================================================
+        // ОБОИ
+        // ============================================================
+        function setupWallpaperDoubleClick() {
+            const desktop = document.getElementById('desktopContainer');
+            desktop.addEventListener('dblclick', function(e) {
+                if (systemVersion === '2.0' || systemVersion === '3.0' || systemVersion === '3.1') {
+                    openWallpaperModal();
+                } else {
+                    showToast('Доступно в LoLOS 2.0+');
+                }
+            });
+        }
+
+        function openWallpaperModal() {
+            document.getElementById('wallpaperModal').classList.add('active');
+            document.getElementById('wallpaperPreview').style.display = 'none';
+            wallpaperData = null;
+            wallpaperCrop = 0;
+        }
+
+        function closeWallpaperModal() {
+            document.getElementById('wallpaperModal').classList.remove('active');
+        }
+
+        let wallpaperData = null;
+        let wallpaperCrop = 0;
+
+        function selectWallpaperFromGallery() {
+            closeWallpaperModal();
+            showScreen('galleryScreen');
+            loadGallery();
+            setTimeout(() => {
+                const grid = document.getElementById('galleryGrid');
+                const btn = document.createElement('button');
+                btn.textContent = 'Выбрать как обои';
+                btn.style.position = 'fixed';
+                btn.style.bottom = '80px';
+                btn.style.left = '50%';
+                btn.style.transform = 'translateX(-50%)';
+                btn.style.width = 'auto';
+                btn.style.padding = '10px 20px';
+                btn.style.zIndex = '100';
+                btn.onclick = function() {
+                    if (currentGallery.length > 0) {
+                        const img = currentGallery[currentGallery.length - 1];
+                        wallpaperData = img.data;
+                        showScreen('desktopScreen');
+                        openWallpaperModal();
+                        document.getElementById('wallpaperPreviewImg').src = wallpaperData;
+                        document.getElementById('wallpaperPreview').style.display = 'block';
+                    }
+                };
+                btn.id = 'galleryWallpaperBtn';
+                grid.appendChild(btn);
+            }, 100);
+        }
+
+        function uploadWallpaper(e) {
+            const f = e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                wallpaperData = ev.target.result;
+                document.getElementById('wallpaperPreviewImg').src = wallpaperData;
+                document.getElementById('wallpaperPreview').style.display = 'block';
+                showToast('Изображение загружено');
+            };
+            reader.readAsDataURL(f);
+        }
+
+        function cropWallpaper(direction) {
+            if (!wallpaperData) return;
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const cropAmount = img.width * 0.1;
+                if (direction === 'left') wallpaperCrop += cropAmount;
+                else if (direction === 'right') wallpaperCrop -= cropAmount;
+                wallpaperCrop = Math.max(0, Math.min(img.width - wallpaperCrop, img.width));
+                canvas.width = img.width - wallpaperCrop;
+                canvas.height = img.height;
+                ctx.drawImage(img, wallpaperCrop, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+                wallpaperData = canvas.toDataURL('image/jpeg');
+                document.getElementById('wallpaperPreviewImg').src = wallpaperData;
+                showToast('Обрезано');
+            };
+            img.src = wallpaperData;
+        }
+
+        function applyWallpaper() {
+            if (!wallpaperData || !currentUserData) return;
+            currentUserData.settings = currentUserData.settings || {};
+            currentUserData.settings.wallpaper = wallpaperData;
+            db.collection('users').doc(currentDeviceCode).update({
+                'settings.wallpaper': wallpaperData
+            }).then(() => {
+                showToast('🖼️ Обои установлены');
+                closeWallpaperModal();
+                applyWallpaperFromData(wallpaperData);
+            });
+        }
+
+        function applyWallpaperFromData(data) {
+            document.body.style.backgroundImage = 'url(' + data + ')';
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundPosition = 'center';
+            document.body.classList.add('has-wallpaper');
+            document.documentElement.style.setProperty('--wallpaper', 'url(' + data + ')');
+        }
+
+        function removeWallpaper() {
+            if (!currentUserData) return;
+            currentUserData.settings.wallpaper = null;
+            db.collection('users').doc(currentDeviceCode).update({
+                'settings.wallpaper': null
+            }).then(() => {
+                document.body.style.backgroundImage = '';
+                document.body.classList.remove('has-wallpaper');
+                showToast('🗑️ Обои удалены');
+                closeWallpaperModal();
+            });
+        }
+
+        // ============================================================
+        // КАЛЕНДАРЬ
+        // ============================================================
+        let calYear, calMonth;
+
+        function openCalendar() {
+            showScreen('calendarScreen');
+            const now = new Date();
+            calYear = now.getFullYear();
+            calMonth = now.getMonth();
+            drawCalendar();
+        }
+
+        function drawCalendar() {
+            const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь',
+                'Ноябрь', 'Декабрь'
+            ];
+            const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            document.getElementById('calMonth').textContent = months[calMonth] + ' ' + calYear;
+            const g = document.getElementById('calGrid');
+            g.innerHTML = '';
+            days.forEach(d => g.innerHTML += '<div style="font-weight:bold;">' + d + '</div>');
+            let fd = new Date(calYear, calMonth, 1).getDay();
+            fd = fd === 0 ? 6 : fd - 1;
+            for (let i = 0; i < fd; i++) g.innerHTML += '<div></div>';
+            const dim = new Date(calYear, calMonth + 1, 0).getDate();
+            const today = new Date();
+            for (let day = 1; day <= dim; day++) {
+                const isToday = day === today.getDate() && calMonth === today.getMonth() && calYear === today
+                .getFullYear();
+                g.innerHTML += '<div style="padding:6px;' + (isToday ? 'background:var(--accent);border-radius:50%;' :
+                    '') + '">' + day + '</div>';
+            }
+        }
+
+        function changeMonth(d) {
+            calMonth += d;
+            if (calMonth > 11) { calMonth = 0;
+                calYear++; }
+            if (calMonth < 0) { calMonth = 11;
+                calYear--; }
+            drawCalendar();
+        }
+
+        // ============================================================
+        // КАЛЬКУЛЯТОР
+        // ============================================================
+        let calcExpression = '';
+
+        function calcInput(v) { calcExpression += v;
+            document.getElementById('calcDisplay').value = calcExpression; }
+
+        function calcClear() { calcExpression = '';
+            document.getElementById('calcDisplay').value = ''; }
+
+        function calcCalculate() {
+            try {
+                const r = eval(calcExpression.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-'));
+                document.getElementById('calcDisplay').value = r;
+                calcExpression = r.toString();
+            } catch (e) {
+                document.getElementById('calcDisplay').value = 'Ошибка';
+                calcExpression = '';
+            }
+        }
+
+        // ============================================================
+        // КРЕСТИКИ-НОЛИКИ
+        // ============================================================
+        let tictactoe = { mode: null, level: null, board: Array(9).fill(''), currentPlayer: 'X', gameOver: false };
+
+        function resetTicTacToe() {
+            tictactoe = { mode: null, level: null, board: Array(9).fill(''), currentPlayer: 'X', gameOver: false };
+            document.getElementById('tictactoeMenu').style.display = 'block';
+            document.getElementById('tictactoeGame').style.display = 'none';
+            document.getElementById('botLevels').style.display = 'none';
+            document.getElementById('tictactoeButtons').innerHTML = '';
+        }
+
+        function startBotGame() { tictactoe.mode = 'bot';
+            document.getElementById('botLevels').style.display = 'block'; }
+
+        function setBotLevel(l) { tictactoe.level = l;
+            startGame(); }
+
+        function startHumanGame() { tictactoe.mode = 'human';
+            startGame(); }
+
+        function startGame() {
+            document.getElementById('tictactoeMenu').style.display = 'none';
+            document.getElementById('tictactoeGame').style.display = 'block';
+            renderBoard();
+        }
+
+        function renderBoard() {
+            const b = document.getElementById('board');
+            b.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'board-cell';
+                cell.textContent = tictactoe.board[i];
+                cell.style.color = tictactoe.board[i] === 'X' ? '#ff3b30' : '#5ac8fa';
+                cell.onclick = () => makeMove(i);
+                b.appendChild(cell);
+            }
+        }
+
+        function makeMove(i) {
+            if (tictactoe.gameOver || tictactoe.board[i] !== '') return;
+            tictactoe.board[i] = tictactoe.currentPlayer;
+            renderBoard();
+            if (checkWin(tictactoe.currentPlayer)) {
+                tictactoe.gameOver = true;
+                document.getElementById('aiMessage').textContent = tictactoe.currentPlayer + ' победил!';
+                addTicTacToeMenuBtn();
+                return;
+            }
+            if (tictactoe.board.every(c => c !== '')) {
+                tictactoe.gameOver = true;
+                document.getElementById('aiMessage').textContent = 'Ничья!';
+                addTicTacToeMenuBtn();
+                return;
+            }
+            tictactoe.currentPlayer = tictactoe.currentPlayer === 'X' ? 'O' : 'X';
+            if (tictactoe.mode === 'bot' && tictactoe.currentPlayer === 'O') setTimeout(botMove, 400);
+        }
+
+        function addTicTacToeMenuBtn() {
+            const c = document.getElementById('tictactoeButtons');
+            if (!c.querySelector('button')) {
+                const btn = document.createElement('button');
+                btn.textContent = 'В меню';
+                btn.onclick = resetTicTacToe;
+                c.appendChild(btn);
+            }
+        }
+
+        function botMove() {
+            let idx;
+            if (tictactoe.level === 'easy') {
+                const e = [];
+                for (let i = 0; i < 9; i++)
+                    if (tictactoe.board[i] === '') e.push(i);
+                idx = e[Math.floor(Math.random() * e.length)];
+            } else if (tictactoe.level === 'medium') {
+                idx = findWinningMove('O') || findWinningMove('X');
+                if (idx == null) {
+                    const e2 = [];
+                    for (let j = 0; j < 9; j++)
+                        if (tictactoe.board[j] === '') e2.push(j);
+                    idx = e2[Math.floor(Math.random() * e2.length)];
+                }
+            } else {
+                idx = findWinningMove('O') || findWinningMove('X') || (tictactoe.board[4] === '' ? 4 : null);
+                if (idx == null) {
+                    const corners = [0, 2, 6, 8],
+                        ec = [];
+                    for (let k = 0; k < corners.length; k++)
+                        if (tictactoe.board[corners[k]] === '') ec.push(corners[k]);
+                    idx = ec.length ? ec[Math.floor(Math.random() * ec.length)] : null;
+                }
+                if (idx == null) {
+                    const all = [];
+                    for (let m = 0; m < 9; m++)
+                        if (tictactoe.board[m] === '') all.push(m);
+                    idx = all[Math.floor(Math.random() * all.length)];
+                }
+            }
+            if (idx !== undefined && idx !== null) {
+                tictactoe.board[idx] = 'O';
+                renderBoard();
+                if (checkWin('O')) {
+                    tictactoe.gameOver = true;
+                    document.getElementById('aiMessage').textContent = 'O победил!';
+                    addTicTacToeMenuBtn();
+                    return;
+                }
+                tictactoe.currentPlayer = 'X';
+            }
+        }
+
+        function findWinningMove(p) {
+            const w = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+            for (let i = 0; i < w.length; i++) {
+                const a = w[i][0],
+                    b = w[i][1],
+                    c = w[i][2],
+                    board = tictactoe.board;
+                if (board[a] === p && board[b] === p && board[c] === '') return c;
+                if (board[a] === p && board[c] === p && board[b] === '') return b;
+                if (board[b] === p && board[c] === p && board[a] === '') return a;
+            }
+            return null;
+        }
+
+        function checkWin(p) {
+            return [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ].some(x => x.every(i => tictactoe.board[i] === p));
+        }
+
+        // ============================================================
+        // ТЕРМИНАЛ
+        // ============================================================
+        function initTerminal() {
+            const input = document.getElementById('terminalInput');
+            const output = document.getElementById('terminalOutput');
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const cmd = this.value.trim();
+                    if (cmd) {
+                        processTerminalCommand(cmd);
+                        this.value = '';
+                    }
+                }
+
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (termHistory.length > 0) {
+                        if (termHistoryIndex > 0) termHistoryIndex--;
+                        input.value = termHistory[termHistoryIndex] || '';
+                    }
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (termHistoryIndex < termHistory.length - 1) {
+                        termHistoryIndex++;
+                        input.value = termHistory[termHistoryIndex] || '';
+                    } else {
+                        termHistoryIndex = termHistory.length;
+                        input.value = '';
+                    }
+                }
+            });
+
+            document.querySelector('.terminal-container').addEventListener('click', function() {
+                input.focus();
+            });
+
+            updateTerminalStatus(false);
+            printTerminal('🔑 Введите ваш ключ для авторизации.', 'info');
+            restoreTerminalHistory();
+        }
+
+        function restoreTerminalHistory() {
+            if (termHistory.length > 0) {
+                const input = document.getElementById('terminalInput');
+                input.placeholder = 'Введите команду...';
+            }
+        }
+
+        function updateTerminalStatus(online) {
+            const status = document.getElementById('terminalStatus');
+            if (online) {
+                status.textContent = '● ONLINE';
+                status.style.color = '#27c93f';
+            } else {
+                status.textContent = '● OFFLINE';
+                status.style.color = '#ff5f56';
+            }
+        }
+
+        function printTerminal(text, type = '') {
+            const output = document.getElementById('terminalOutput');
+            const line = document.createElement('div');
+            line.className = 'line';
+            const span = document.createElement('span');
+            span.className = type;
+            span.textContent = text;
+            line.appendChild(span);
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function printTerminalPrompt(cmd) {
+            const output = document.getElementById('terminalOutput');
+            const line = document.createElement('div');
+            line.className = 'line';
+            line.innerHTML = `<span class="prompt">➜</span> <span class="cmd">${cmd}</span>`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function terminalShowProgress(duration, label, callback) {
+            const container = document.createElement('div');
+            container.className = 'terminal-progress-container';
+            const bar = document.createElement('div');
+            bar.className = 'terminal-progress-bar';
+            const fill = document.createElement('div');
+            fill.className = 'fill';
+            fill.style.width = '0%';
+            bar.appendChild(fill);
+            const text = document.createElement('div');
+            text.className = 'terminal-progress-text';
+            text.textContent = label + ' 0%';
+
+            container.appendChild(bar);
+            container.appendChild(text);
+            const output = document.getElementById('terminalOutput');
+            output.appendChild(container);
+            output.scrollTop = output.scrollHeight;
+
+            let progress = 0;
+            const steps = 60;
+            const interval = setInterval(() => {
+                progress += 100 / steps;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    fill.style.width = '100%';
+                    text.textContent = label + ' 100% ✅';
+                    text.className = 'terminal-progress-text terminal-progress-done';
+                    if (callback) setTimeout(callback, 200);
+                } else {
+                    fill.style.width = progress + '%';
+                    text.textContent = label + ' ' + Math.round(progress) + '%';
+                }
+            }, duration / steps);
+        }
+
+        // ============================================================
+        // КОМАНДЫ ТЕРМИНАЛА
+        // ============================================================
+        function processTerminalCommand(cmd) {
+            termHistory.push(cmd);
+            termHistoryIndex = termHistory.length;
+
+            localStorage.setItem('terminal_history_' + currentDeviceCode, JSON.stringify(termHistory));
+
+            printTerminalPrompt(cmd);
+
+            if (!isTerminalAuth) {
+                const key = cmd.toUpperCase();
+                if (/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
+                    db.collection('users').doc(key).get().then(doc => {
+                        if (doc.exists) {
+                            isTerminalAuth = true;
+                            updateTerminalStatus(true);
+                            printTerminal('✅ Авторизация успешна!', 'success');
+                            printTerminal('💡 Введите "help" для списка команд.', 'info');
+                        } else {
+                            printTerminal('❌ Ключ не найден в системе.', 'error');
+                            printTerminal('💡 Попробуйте снова.', 'warn');
+                        }
+                    }).catch(() => {
+                        printTerminal('❌ Ошибка проверки ключа.', 'error');
+                    });
+                } else {
+                    printTerminal('❌ Неверный формат ключа. Используйте XXXX-XXXX-XXXX-XXXX', 'error');
+                    printTerminal('💡 Введите ваш ключ для авторизации.', 'info');
+                }
+                return;
+            }
+
+            const args = cmd.split(' ');
+            const command = args[0].toLowerCase();
+
+            switch (command) {
+                case 'help':
+                    printTerminal('📋 Доступные команды:', 'info');
+                    printTerminal('');
+                    printTerminal('  🔹 help              - показать справку', 'info');
+                    printTerminal('  🔹 key               - показать ключ', 'info');
+                    printTerminal('  🔹 whoami            - информация о пользователе', 'info');
+                    printTerminal('  🔹 apps              - список приложений', 'info');
+                    printTerminal('  🔹 install <app>     - установить приложение', 'info');
+                    printTerminal('  🔹 uninstall <app>   - удалить приложение', 'error');
+                    printTerminal('  🔹 downgrade <ver>   - понизить версию', 'warn');
+                    printTerminal('  🔹 upgrade <ver>     - обновить версию', 'success');
+                    printTerminal('  🔹 clear             - очистить экран', 'info');
+                    printTerminal('  🔹 sysinfo           - информация о системе', 'info');
+                    printTerminal('  🔹 status            - статус системы', 'info');
+                    printTerminal('  🔹 exit              - ВЫХОД ЗАПРЕЩЁН (используйте кнопку "← Назад")', 'warn');
+                    printTerminal('');
+                    break;
+
+                case 'key':
+                    printTerminal('🔑 Ключ: ' + currentDeviceCode, 'success');
+                    break;
+
+                case 'whoami':
+                    printTerminal('👤 Пользователь: ' + (currentUserData ? currentUserData.name || 'Пользователь' :
+                        'Неизвестно'), 'info');
+                    printTerminal('🛒 Версия: LoLOS ' + systemVersion, 'info');
+                    printTerminal('📱 Приложений: ' + (installedApps ? installedApps.length : 0), 'info');
+                    break;
+
+                case 'apps':
+                    printTerminal('📱 Доступные приложения:', 'info');
+                    printTerminal('');
+                    const allApps = ['google', 'tictactoe', 'calculator'];
+                    if (systemVersion === '3.1') allApps.push('terminal');
+                    allApps.forEach(app => {
+                        const isInstalled = installedApps && installedApps.includes(app);
+                        const name = { google: 'Google', tictactoe: 'Игра', calculator: 'Калькулятор',
+                            terminal: 'Командная строка' } [app] || app;
+                        printTerminal(`  ${name}   ${isInstalled ? '✅ Установлено' : '❌ Не установлено'}`, isInstalled ?
+                            'success' : 'error');
+                    });
+                    printTerminal('');
+                    break;
+
+                case 'install':
+                    if (args.length < 2) {
+                        printTerminal('❌ Укажите приложение. Например: install google', 'error');
+                    } else {
+                        const appId = args[1];
+                        if (installedApps && installedApps.includes(appId)) {
+                            printTerminal('⚠️ ' + appId + ' уже установлен!', 'warn');
+                        } else {
+                            printTerminal('📥 Установка ' + appId + '...', 'info');
+                            terminalShowProgress(2000, 'Установка ' + appId, () => {
+                                installedApps = installedApps || [];
+                                installedApps.push(appId);
+                                currentUserData.installedApps = installedApps;
+                                db.collection('users').doc(currentDeviceCode).update({
+                                    installedApps: installedApps
+                                }).then(() => {
+                                    printTerminal('✅ ' + appId + ' установлен!', 'success');
+                                    renderLolApps();
+                                    renderDesktop();
+                                });
+                            });
+                        }
+                    }
+                    break;
+
+                case 'uninstall':
+                    if (args.length < 2) {
+                        printTerminal('❌ Укажите приложение. Например: uninstall google', 'error');
+                    } else {
+                        const appId = args[1];
+                        if (!installedApps || !installedApps.includes(appId)) {
+                            printTerminal('⚠️ ' + appId + ' не установлен!', 'warn');
+                        } else {
+                            printTerminal('🗑️ Удаление ' + appId + '...', 'warn');
+                            terminalShowProgress(1500, 'Удаление ' + appId, () => {
+                                installedApps = installedApps.filter(a => a !== appId);
+                                currentUserData.installedApps = installedApps;
+                                db.collection('users').doc(currentDeviceCode).update({
+                                    installedApps: installedApps
+                                }).then(() => {
+                                    printTerminal('✅ ' + appId + ' удален!', 'success');
+                                    renderLolApps();
+                                    renderDesktop();
+                                });
+                            });
+                        }
+                    }
+                    break;
+
+                case 'downgrade':
+                    if (args.length < 2) {
+                        printTerminal('❌ Укажите версию. Например: downgrade 3.0', 'error');
+                    } else {
+                        const targetVersion = args[1];
+                        if (parseFloat(targetVersion) >= parseFloat(systemVersion)) {
+                            printTerminal('⚠️ Версия ' + targetVersion + ' не ниже текущей. Используйте upgrade.',
+                                'warn');
+                        } else {
+                            printTerminal('⚠️ Понижение до LoLOS ' + targetVersion + '...', 'warn');
+                            terminalShowProgress(3000, 'Понижение до ' + targetVersion, () => {
+                                systemVersion = targetVersion;
+                                db.collection('users').doc(currentDeviceCode).update({
+                                    systemVersion: targetVersion
+                                }).then(() => {
+                                    printTerminal('✅ Понижение до LoLOS ' + targetVersion +
+                                        ' выполнено!', 'success');
+                                    printTerminal('🔄 Перезагрузите страницу.', 'info');
+                                });
+                            });
+                        }
+                    }
+                    break;
+
+                case 'upgrade':
+                    if (args.length < 2) {
+                        printTerminal('❌ Укажите версию. Например: upgrade 3.1', 'error');
+                    } else {
+                        const targetVersion = args[1];
+                        if (parseFloat(targetVersion) <= parseFloat(systemVersion)) {
+                            printTerminal('⚠️ Версия ' + targetVersion + ' не выше текущей. Используйте downgrade.',
+                                'warn');
+                        } else {
+                            printTerminal('🚀 Обновление до LoLOS ' + targetVersion + '...', 'info');
+                            terminalShowProgress(3000, 'Обновление до ' + targetVersion, () => {
+                                systemVersion = targetVersion;
+                                db.collection('users').doc(currentDeviceCode).update({
+                                    systemVersion: targetVersion
+                                }).then(() => {
+                                    printTerminal('✅ Обновление до LoLOS ' + targetVersion +
+                                        ' выполнено!', 'success');
+                                    printTerminal('🔄 Перезагрузите страницу.', 'info');
+                                });
+                            });
+                        }
+                    }
+                    break;
+
+                case 'clear':
+                    document.getElementById('terminalOutput').innerHTML = '';
+                    break;
+
+                case 'sysinfo':
+                    printTerminal('🖥️ СИСТЕМНАЯ ИНФОРМАЦИЯ', 'info');
+                    printTerminal('━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+                    printTerminal('  ОС: LoLOS ' + systemVersion, 'info');
+                    printTerminal('  Ключ: ' + currentDeviceCode, 'info');
+                    printTerminal('  Приложений: ' + (installedApps ? installedApps.length : 0), 'info');
+                    printTerminal('  Дата: ' + new Date().toLocaleString(), 'info');
+                    printTerminal('━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+                    break;
+
+                case 'status':
+                    printTerminal('📊 СТАТУС СИСТЕМЫ', 'info');
+                    printTerminal('  ● Аутентификация: ✅', 'success');
+                    printTerminal('  ● Терминал: ✅ Работает', 'success');
+                    printTerminal('  ● Firebase: ✅ Подключена', 'success');
+                    printTerminal('  ● Версия: LoLOS ' + systemVersion, 'info');
+                    printTerminal('  ● Пользователь: ' + (currentUserData ? currentUserData.name || 'Пользователь' :
+                        'Неизвестно'), 'info');
+                    break;
+
+                case 'exit':
+                    printTerminal('❌ Команда "exit" удалена. Используйте кнопку "← Назад" для выхода.', 'error');
+                    printTerminal('💡 Нажмите "← Назад" в левом верхнем углу.', 'warn');
+                    break;
+
+                default:
+                    printTerminal('❌ Неизвестная команда: ' + cmd, 'error');
+                    printTerminal('💡 Введите "help" для списка команд.', 'warn');
+                    break;
+            }
+        }
+
+        // ============================================================
+        // LOLI (С GROQ)
+        // ============================================================
+        function loadLoliHistory() {
+            const messagesDiv = document.getElementById('loliMessages');
+            if (loliHistory.length === 0) {
+                messagesDiv.innerHTML = '';
+                const welcome1 = document.createElement('div');
+                welcome1.className = 'loli-message bot';
+                welcome1.textContent = 'Привет! Я LoLi 🛒';
+                messagesDiv.appendChild(welcome1);
+                const welcome2 = document.createElement('div');
+                welcome2.className = 'loli-message bot';
+                welcome2.textContent = 'Напиши что-нибудь!';
+                messagesDiv.appendChild(welcome2);
+            } else {
+                messagesDiv.innerHTML = '';
+                loliHistory.forEach(msg => {
+                    const el = document.createElement('div');
+                    el.className = 'loli-message ' + msg.type;
+                    el.textContent = msg.text;
+                    messagesDiv.appendChild(el);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        function clearLoliChat() {
+            if (!confirm('🗑️ Удалить всю историю чата?')) return;
+            loliHistory = [];
+            document.getElementById('loliMessages').innerHTML = '';
+            const welcome1 = document.createElement('div');
+            welcome1.className = 'loli-message bot';
+            welcome1.textContent = 'Привет! Я LoLi 🛒';
+            document.getElementById('loliMessages').appendChild(welcome1);
+            const welcome2 = document.createElement('div');
+            welcome2.className = 'loli-message bot';
+            welcome2.textContent = 'Напиши что-нибудь!';
+            document.getElementById('loliMessages').appendChild(welcome2);
+
+            if (currentUserData) {
+                currentUserData.loliHistory = [];
+                db.collection('users').doc(currentDeviceCode).update({
+                    loliHistory: []
+                });
+            }
+            showToast('🗑️ Чат очищен');
+        }
+
+        async function sendLoliMessage() {
+            const input = document.getElementById('loliInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+
+            const messagesDiv = document.getElementById('loliMessages');
+
+            const userMsg = document.createElement('div');
+            userMsg.className = 'loli-message user';
+            userMsg.textContent = msg;
+            messagesDiv.appendChild(userMsg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            loliHistory.push({ type: 'user', text: msg });
+            if (loliHistory.length > 20) loliHistory = loliHistory.slice(-20);
+
+            if (currentUserData) {
+                currentUserData.loliHistory = loliHistory;
+                db.collection('users').doc(currentDeviceCode).update({
+                    loliHistory: loliHistory
+                });
+            }
+
+            showLoliTyping(true);
+
+            try {
+                const response = await fetch(GROQ_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + GROQ_API_KEY
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [
+                            { role: 'system', content: loliCustomPrompt || DEFAULT_PROMPT },
+                            ...loliHistory.slice(-10).map(m => ({
+                                role: m.type === 'user' ? 'user' : 'assistant',
+                                content: m.text
+                            })),
+                            { role: 'user', content: msg }
+                        ],
+                        temperature: 0.8,
+                        max_tokens: 200
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка API: ' + response.status);
+                }
+
+                const data = await response.json();
+                const botReply = data.choices[0].message.content;
+
+                showLoliTyping(false);
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'loli-message bot';
+                botMsg.textContent = botReply;
+                messagesDiv.appendChild(botMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                loliHistory.push({ type: 'bot', text: botReply });
+                if (loliHistory.length > 20) loliHistory = loliHistory.slice(-20);
+                if (currentUserData) {
+                    currentUserData.loliHistory = loliHistory;
+                    db.collection('users').doc(currentDeviceCode).update({
+                        loliHistory: loliHistory
+                    });
+                }
+
+            } catch (error) {
+                console.error('GROQ Error:', error);
+                showLoliTyping(false);
+
+                const botMsg = document.createElement('div');
+                botMsg.className = 'loli-message bot';
+                botMsg.textContent = '🛒 Извини, я сейчас офлайн 😅 Попробуй позже!';
+                messagesDiv.appendChild(botMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
+        function showLoliTyping(isTyping) {
+            const typingDiv = document.getElementById('loliTyping');
+            const smiley = document.getElementById('loliSmiley');
+
+            if (isTyping) {
+                typingDiv.style.display = 'flex';
+                smiley.className = 'smiley talking';
+                smiley.textContent = ':)';
+                let count = 0;
+                if (loliTypingTimeout) clearInterval(loliTypingTimeout);
+                loliTypingTimeout = setInterval(() => {
+                    count++;
+                    smiley.textContent = count % 2 === 0 ? ':)' : ':()';
+                }, 400);
+            } else {
+                typingDiv.style.display = 'none';
+                if (loliTypingTimeout) {
+                    clearInterval(loliTypingTimeout);
+                    loliTypingTimeout = null;
+                }
+            }
+        }
+
+        function openPromptModal() {
+            document.getElementById('promptModal').classList.add('active');
+            document.getElementById('promptEditor').value = loliCustomPrompt || DEFAULT_PROMPT;
+        }
+
+        function closePromptModal() {
+            document.getElementById('promptModal').classList.remove('active');
+        }
+
+        function savePrompt() {
+            const newPrompt = document.getElementById('promptEditor').value.trim();
+            if (!newPrompt) {
+                showToast('Промт не может быть пустым!');
+                return;
+            }
+            loliCustomPrompt = newPrompt;
+            showToast('💾 Промт сохранён!');
+            closePromptModal();
+        }
+
+        // ============================================================
+        // SUPCHIK (2.0)
+        // ============================================================
+        function clearSupchikChat() {
+            showToast('🗑️ Чат очищен');
+            document.getElementById('supchikMessages').innerHTML = '';
+        }
+
+        async function sendSupchikMessage() {
+            const input = document.getElementById('supchikInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+            const messagesDiv = document.getElementById('supchikMessages');
+            const userMsg = document.createElement('div');
+            userMsg.className = 'supchik-message user';
+            userMsg.textContent = msg;
+            messagesDiv.appendChild(userMsg);
+            const botMsg = document.createElement('div');
+            botMsg.className = 'supchik-message bot';
+            botMsg.textContent = '🤖 Я Supchik! Напиши что-нибудь ещё!';
+            messagesDiv.appendChild(botMsg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // ============================================================
+        // НАСТРОЙКИ
+        // ============================================================
+        function populateFontSelect() {
+            const fonts = ['Segoe UI', 'Arial', 'Courier New', 'Verdana', 'Georgia', 'Impact', 'Roboto'];
+            const sel = document.getElementById('fontSelect');
+            if (!sel) return;
+            sel.innerHTML = '';
+            fonts.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                if ((currentUserData && currentUserData.settings && currentUserData.settings.font) === f)
+                    opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function showAbout() {
+            showScreen('aboutScreen');
+            document.getElementById('aboutCode').textContent = currentDeviceCode || 'Неизвестно';
+            document.getElementById('aboutVersion').textContent = systemVersion;
+            document.getElementById('aboutVersionLine').innerHTML = 'Версия: <strong>' + systemVersion + '</strong>';
+        }
+
+        // ============================================================
+        // ОБНОВЛЕНИЕ
+        // ============================================================
+        function startUpdate(mode) {
+            if (systemVersion === '3.1') {
+                showToast('У вас уже LoLOS 3.1! 🚀');
+                return;
+            }
+
+            document.getElementById('updateAvailable').style.display = 'none';
+            const wrap = document.getElementById('updateProgressWrap');
+            wrap.classList.add('active');
+
+            const fill = document.getElementById('updateProgressFill');
+            const text = document.getElementById('updateProgressText');
+            const installBtn = document.getElementById('updateInstallBtn');
+
+            fill.style.width = '0%';
+            text.textContent = '0%';
+            installBtn.classList.add('hidden');
+
+            let step = 0;
+            const total = 30;
+            const interval = setInterval(() => {
+                step++;
+                const progress = (step / total) * 100;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    fill.style.width = '100%';
+                    text.textContent = '100%';
+
+                    if (mode === 'download') {
+                        installBtn.classList.remove('hidden');
+                        installBtn.textContent = '✅ Установить';
+                        installBtn.onclick = function() { installUpdate(); };
+                    } else if (mode === 'full') {
+                        setTimeout(installUpdate, 500);
+                    }
+                } else {
+                    fill.style.width = progress + '%';
+                    text.textContent = Math.round(progress) + '%';
+                }
+            }, 1000);
+        }
+
+        function installUpdate() {
+            document.getElementById('updateOverlay').style.display = 'flex';
+            document.getElementById('updatePhaseText').textContent = 'Установка LoLOS 3.1...';
+            document.getElementById('updateOverlayHint').textContent = 'Не выключайте устройство';
+            document.getElementById('overlayLogo').textContent = 'LOL';
+
+            const fill = document.getElementById('updateOverlayProgress');
+            fill.style.width = '0%';
+
+            let step = 0;
+            const total = 60;
+            const interval = setInterval(() => {
+                step++;
+                const progress = (step / total) * 100;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    fill.style.width = '100%';
+
+                    setTimeout(() => {
+                        document.getElementById('updateOverlay').style.display = 'none';
+                        systemVersion = '3.1';
+
+                        db.collection('users').doc(currentDeviceCode).update({
+                            systemVersion: '3.1'
+                        }).then(() => {
+                            showToast('🚀 Обновление до LoLOS 3.1 завершено!');
+                            document.getElementById('versionBadge').textContent = 'v3.1';
+                            document.getElementById('osNameDisplay').textContent = 'LoLOS 3.1';
+                            document.getElementById('aboutOSName').textContent = 'LoLOS 3.1';
+                            document.getElementById('updateAvailable').style.display = 'none';
+                            document.getElementById('noUpdateMsg').textContent =
+                                'Пока никаких обновлений нет';
+                            document.getElementById('updateTitleBadge').style.display = 'none';
+                            document.getElementById('updateProgressWrap').classList.remove(
+                            'active');
+
+                            renderDesktop();
+                            renderLolApps();
+                            initTerminal();
+                        });
+                    }, 500);
+                } else {
+                    fill.style.width = progress + '%';
+                }
+            }, 1000);
+        }
+
+        // ============================================================
+        // ЖЕСТЫ
+        // ============================================================
+        function setupGestures() {
+            const desktop = document.getElementById('desktopScreen');
+            let startX = 0,
+                startY = 0;
+            desktop.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            });
+            desktop.addEventListener('touchend', function(e) {
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                if (Math.abs(dy) > 50 && Math.abs(dx) < Math.abs(dy)) {
+                    if (startX < window.innerWidth / 2 && dy > 0) { showLockScreen(); } else if (startX >= window
+                        .innerWidth / 2 && dy > 0) { openQuickMenu(); }
+                }
+            });
+            desktop.addEventListener('mousedown', function(e) {
+                startX = e.clientX;
+                startY = e.clientY;
+            });
+            desktop.addEventListener('mouseup', function(e) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                if (Math.abs(dy) > 50 && Math.abs(dx) < Math.abs(dy)) {
+                    if (startX < window.innerWidth / 2 && dy > 0) { showLockScreen(); } else if (startX >= window
+                        .innerWidth / 2 && dy > 0) { openQuickMenu(); }
+                }
+            });
+            setupWallpaperDoubleClick();
+        }
+
+        function showLockScreen() {
+            const now = new Date();
+            document.getElementById('lockTime').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit',
+                minute: '2-digit' });
+            document.getElementById('lockDate').textContent = now.toLocaleDateString('ru-RU', { weekday: 'long',
+                day: 'numeric', month: 'long' });
+            document.getElementById('lockScreen').style.display = 'flex';
+        }
+
+        function openQuickMenu() { document.getElementById('quickMenu').classList.add('open'); }
+
+        function closeQuickMenu() { document.getElementById('quickMenu').classList.remove('open'); }
+
+        // ============================================================
+        // ЗАПУСК
+        // ============================================================
+        applyLang();
+        console.log('🔐 LoLOS 3.1 — ФИНАЛ');
+        console.log('💡 Тестовый ключ: GT2M-5WLM-WM2Q-MVP4');
+        console.log('📱 Все ключи хранятся в Firebase');
+        console.log('🎨 Icon Remaker — ТОЛЬКО В 3.1');
+        console.log('🛒 LoLi с GROQ (llama-3.3-70b-versatile)');
+        console.log('❌ Команда "exit" удалена');
+        console.log('🔄 Перезагрузка удаляет историю терминала');
+        console.log('📁 Меню Icon Remaker НЕ закрывается при выборе файла');
+        console.log('✅ Предпросмотр показывается в меню');
+    </script>
+</body>
+</html>
